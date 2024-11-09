@@ -2,7 +2,7 @@
 setlocal EnableDelayedExpansion
 
 :: Setup logging
-echo Starting Office installation at %date% %time% > C:\office.log
+echo Starting installations at %date% %time% > C:\office.log
 echo ============================================ >> C:\office.log
 
 :: Create temp directory for downloads
@@ -44,6 +44,13 @@ echo ^</Configuration^>
 :: Download and install Office
 echo Installing Microsoft Office (this may take a while)... >> C:\office.log
 setup.exe /configure configuration.xml >> C:\office.log 2>&1
+
+:: Run Ninite if it exists
+echo Checking for Ninite installer... >> C:\office.log
+if exist "C:\OEM\ninite.exe" (
+    echo Running Ninite installer... >> C:\office.log
+    start /wait C:\OEM\ninite.exe >> C:\office.log 2>&1
+)
 
 :: Clean up
 echo Cleaning up temporary files... >> C:\office.log
