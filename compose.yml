@@ -1,12 +1,18 @@
 services:
   windows:
-    image: dockurr/windows
+    build:
+      context: .
+      dockerfile: Dockerfile
     container_name: windows
     environment:
       VERSION: "11"
+      USERNAME: "poespas"
     devices:
       - /dev/kvm
       - /dev/net/tun
+    volumes:
+      - ./oem:/oem
+      - ./windows:/storage
     cap_add:
       - NET_ADMIN
     ports:
@@ -14,6 +20,5 @@ services:
       - 3389:3389/tcp
       - 3389:3389/udp
     volumes:
-      - ./windows:/storage
     restart: always
     stop_grace_period: 2m
