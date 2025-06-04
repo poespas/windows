@@ -1,10 +1,12 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
 
-: "${XRES:=""}"
-: "${YRES:=""}"
+: "${KEY:=""}"
+: "${WIDTH:=""}"
+: "${HEIGHT:=""}"
 : "${VERIFY:=""}"
 : "${REGION:=""}"
+: "${EDITION:=""}"
 : "${MANUAL:=""}"
 : "${REMOVE:=""}"
 : "${VERSION:=""}"
@@ -15,7 +17,6 @@ set -Eeuo pipefail
 : "${PASSWORD:=""}"
 
 MIRRORS=4
-PLATFORM="x64"
 
 parseVersion() {
 
@@ -60,33 +61,54 @@ parseVersion() {
     "8e" | "81e" | "8.1e" | "win8e" | "win81e" | "windows 8e" )
       VERSION="win81x64-enterprise-eval"
       ;;
-    "7" | "7e" | "win7" | "win7e" | "windows7" | "windows 7" )
+    "7" | "win7" | "windows7" | "windows 7" )
       VERSION="win7x64"
-      [ -z "$DETECTED" ] && DETECTED="win7x64-enterprise"
+      [ -z "$DETECTED" ] && DETECTED="win7x64-ultimate"
       ;;
     "7u" | "win7u" | "windows7u" | "windows 7u" )
       VERSION="win7x64-ultimate"
       ;;
-    "7x86" | "win7x86" | "windows7x86"  | "win7x86-enterprise" )
+    "7e" | "win7e" | "windows7e" | "windows 7e" )
+      VERSION="win7x64-enterprise"
+      ;;
+    "7x86" | "win7x86" | "win732" | "windows7x86" )
       VERSION="win7x86"
-      [ -z "$DETECTED" ] && DETECTED="win7x86-enterprise"
+      [ -z "$DETECTED" ] && DETECTED="win7x86-ultimate"
       ;;
-    "vista" | "6" | "winvista" | "windowsvista" | "windows vista" )
+    "7ux86" | "7u32" | "win7x86-ultimate" )
+      VERSION="win7x86-ultimate"
+      ;;
+    "7ex86" | "7e32" | "win7x86-enterprise" )
+      VERSION="win7x86-enterprise"
+      ;;
+    "vista" | "vs" | "6" | "winvista" | "windowsvista" | "windows vista" )
       VERSION="winvistax64"
-      [ -z "$DETECTED" ] && DETECTED="winvistax64-enterprise"
+      [ -z "$DETECTED" ] && DETECTED="winvistax64-ultimate"
       ;;
-    "vistu" | "6u" | "winvistu" | "windowsvistu" | "windows vistu" )
+    "vistu" | "vu" | "6u" | "winvistu" )
       VERSION="winvistax64-ultimate"
       ;;
-    "vistax86" | "6x86" | "winvistax86" | "windowsvistax86"  | "winvistax86-enterprise" )
+    "viste" | "ve" | "6e" | "winviste" )
+      VERSION="winvistax64-enterprise"
+      ;;
+    "vistax86" | "vista32" | "6x86" | "winvistax86" | "windowsvistax86" )
       VERSION="winvistax86"
-      [ -z "$DETECTED" ] && DETECTED="winvistax86-enterprise"
+      [ -z "$DETECTED" ] && DETECTED="winvistax86-ultimate"
+      ;;
+    "vux86" | "vu32" | "winvistax86-ultimate" )
+      VERSION="winvistax86-ultimate"
+      ;;
+    "vex86" | "ve32" | "winvistax86-enterprise" )
+      VERSION="winvistax86-enterprise"
       ;;
     "xp" | "xp32" | "xpx86" | "5" | "5x86" | "winxp" | "winxp86" | "windowsxp" | "windows xp" )
       VERSION="winxpx86"
       ;;
     "xp64" | "xpx64" | "5x64" | "winxp64" | "winxpx64" | "windowsxp64" | "windowsxpx64" )
       VERSION="winxpx64"
+      ;;
+    "2k" | "2000" | "win2k" | "win2000" | "windows2k" | "windows2000" )
+      VERSION="win2kx86"
       ;;
     "25" | "2025" | "win25" | "win2025" | "windows2025" | "windows 2025" )
       VERSION="win2025-eval"
@@ -99,6 +121,9 @@ parseVersion() {
       ;;
     "16" | "2016" | "win16" | "win2016" | "windows2016" | "windows 2016" )
       VERSION="win2016-eval"
+      ;;
+    "hv" | "hyperv" | "hyper v" | "hyper-v" | "19hv" | "2019hv" | "win2019hv" )
+      VERSION="win2019-hv"
       ;;
     "2012" | "2012r2" | "win2012" | "win2012r2" | "windows2012" | "windows 2012" )
       VERSION="win2012r2-eval"
@@ -132,163 +157,203 @@ getLanguage() {
   local ret="$2"
   local lang=""
   local desc=""
+  local short=""
   local culture=""
 
   case "${id,,}" in
     "ar" | "ar-"* )
+      short="ar"
       lang="Arabic"
       desc="$lang"
       culture="ar-SA" ;;
     "bg" | "bg-"* )
+      short="bg"
       lang="Bulgarian"
       desc="$lang"
       culture="bg-BG" ;;
     "cs" | "cs-"* | "cz" | "cz-"* )
+      short="cs"
       lang="Czech"
       desc="$lang"
       culture="cs-CZ" ;;
     "da" | "da-"* | "dk" | "dk-"* )
+      short="da"
       lang="Danish"
       desc="$lang"
       culture="da-DK" ;;
     "de" | "de-"* )
+      short="de"
       lang="German"
       desc="$lang"
       culture="de-DE" ;;
     "el" | "el-"* | "gr" | "gr-"* )
+      short="el"
       lang="Greek"
       desc="$lang"
       culture="el-GR" ;;
     "gb" | "en-gb" )
+      short="en-gb"
       lang="English International"
       desc="English"
       culture="en-GB" ;;
     "en" | "en-"* )
-      lang="English (United States)"
+      short="en"
+      lang="English"
       desc="English"
       culture="en-US" ;;
     "mx" | "es-mx" )
+      short="mx"
       lang="Spanish (Mexico)"
       desc="Spanish"
       culture="es-MX" ;;
     "es" | "es-"* )
+      short="es"
       lang="Spanish"
       desc="$lang"
       culture="es-ES" ;;
     "et" | "et-"* )
+      short="et"
       lang="Estonian"
       desc="$lang"
       culture="et-EE" ;;
     "fi" | "fi-"* )
+      short="fi"
       lang="Finnish"
       desc="$lang"
       culture="fi-FI" ;;
     "ca" | "fr-ca" )
+      short="ca"
       lang="French Canadian"
       desc="French"
       culture="fr-CA" ;;
     "fr" | "fr-"* )
+      short="fr"
       lang="French"
       desc="$lang"
       culture="fr-FR" ;;
     "he" | "he-"* | "il" | "il-"* )
+      short="he"
       lang="Hebrew"
       desc="$lang"
       culture="he-IL" ;;
     "hr" | "hr-"* | "cr" | "cr-"* )
+      short="hr"
       lang="Croatian"
       desc="$lang"
       culture="hr-HR" ;;
     "hu" | "hu-"* )
+      short="hu"
       lang="Hungarian"
       desc="$lang"
       culture="hu-HU" ;;
     "it" | "it-"* )
+      short="it"
       lang="Italian"
       desc="$lang"
       culture="it-IT" ;;
     "ja" | "ja-"* | "jp" | "jp-"* )
+      short="ja"
       lang="Japanese"
       desc="$lang"
       culture="ja-JP" ;;
     "ko" | "ko-"* | "kr" | "kr-"* )
+      short="ko"
       lang="Korean"
       desc="$lang"
       culture="ko-KR" ;;
     "lt" | "lt-"* )
+      short="lt"
       lang="Lithuanian"
       desc="$lang"
-      culture="lv-LV" ;;
+      culture="lt-LT" ;;
     "lv" | "lv-"* )
+      short="lv"
       lang="Latvian"
       desc="$lang"
-      culture="lt-LT" ;;
+      culture="lv-LV" ;;
     "nb" | "nb-"* |"nn" | "nn-"* | "no" | "no-"* )
+      short="no"
       lang="Norwegian"
       desc="$lang"
       culture="nb-NO" ;;
     "nl" | "nl-"* )
+      short="nl"
       lang="Dutch"
       desc="$lang"
       culture="nl-NL" ;;
     "pl" | "pl-"* )
+      short="pl"
       lang="Polish"
       desc="$lang"
       culture="pl-PL" ;;
     "br" | "pt-br" )
+      short="pt"
       lang="Brazilian Portuguese"
       desc="Portuguese"
       culture="pt-BR" ;;
     "pt" | "pt-"* )
+      short="pp"
       lang="Portuguese"
       desc="$lang"
       culture="pt-BR" ;;
     "ro" | "ro-"* )
+      short="ro"
       lang="Romanian"
       desc="$lang"
       culture="ro-RO" ;;
     "ru" | "ru-"* )
+      short="ru"
       lang="Russian"
       desc="$lang"
       culture="ru-RU" ;;
     "sk" | "sk-"* )
+      short="sk"
       lang="Slovak"
       desc="$lang"
       culture="sk-SK" ;;
     "sl" | "sl-"* | "si" | "si-"* )
+      short="sl"
       lang="Slovenian"
       desc="$lang"
       culture="sl-SI" ;;
     "sr" | "sr-"* )
+      short="sr"
       lang="Serbian Latin"
       desc="Serbian"
       culture="sr-Latn-RS" ;;
     "sv" | "sv-"* | "se" | "se-"* )
+      short="sv"
       lang="Swedish"
       desc="$lang"
       culture="sv-SE" ;;
     "th" | "th-"* )
+      short="th"
       lang="Thai"
       desc="$lang"
       culture="th-TH" ;;
     "tr" | "tr-"* )
+      short="tr"
       lang="Turkish"
       desc="$lang"
       culture="tr-TR" ;;
     "ua" | "ua-"* | "uk" | "uk-"* )
+      short="uk"
       lang="Ukrainian"
       desc="$lang"
       culture="uk-UA" ;;
     "hk" | "zh-hk" | "cn-hk" )
-      lang="Chinese Traditional"
+      short="hk"
+      lang="Chinese (Traditional)"
       desc="Chinese HK"
       culture="zh-TW" ;;
     "tw" | "zh-tw" | "cn-tw" )
-      lang="Chinese Traditional"
+      short="tw"
+      lang="Chinese (Traditional)"
       desc="Chinese TW"
       culture="zh-TW" ;;
     "zh" | "zh-"* | "cn" | "cn-"* )
-      lang="Chinese Simplified"
+      short="cn"
+      lang="Chinese (Simplified)"
       desc="Chinese"
       culture="zh-CN" ;;
   esac
@@ -296,6 +361,7 @@ getLanguage() {
   case "${ret,,}" in
     "desc" ) echo "$desc" ;;
     "name" ) echo "$lang" ;;
+    "code" ) echo "$short" ;;
     "culture" ) echo "$culture" ;;
     *) echo "$desc";;
   esac
@@ -375,6 +441,7 @@ printVersion() {
     "win95"* ) desc="Windows 95" ;;
     "win2k"* ) desc="Windows 2000" ;;
     "winvista"* ) desc="Windows Vista" ;;
+    "win2019-hv"* ) desc="Hyper-V Server" ;;
     "win2003"* ) desc="Windows Server 2003" ;;
     "win2008"* ) desc="Windows Server 2008" ;;
     "win2012"* ) desc="Windows Server 2012" ;;
@@ -419,6 +486,9 @@ printEdition() {
     *"-education" )
       edition="Education"
       ;;
+    *"-hv" )
+      edition="2019"
+      ;;
     *"-iot" | *"-iot-eval" )
       edition="LTSC"
       ;;
@@ -440,11 +510,12 @@ printEdition() {
     "winvista"* )
       edition="Business"
       ;;
-    "win2025"* | "win2022"* | "win2019"* | "win2016"* )
-      edition="Standard"
-      ;;
-    "win2012"* | "win2008"* | "win2003"* )
-      edition="Standard"
+    "win2025"* | "win2022"* | "win2019"* | "win2016"* | "win2012"* | "win2008"* | "win2003"* )
+      case "${EDITION^^}" in
+        *"DATACENTER"* ) edition="Datacenter" ;;
+        "CORE" | "STANDARDCORE" ) edition="Core" ;;
+        * ) edition="Standard" ;;
+      esac
       ;;
   esac
 
@@ -461,7 +532,10 @@ fromFile() {
   local file="${1,,}"
   local arch="${PLATFORM,,}"
 
-  case "${file// /_}" in
+  file="${file//-/_}"
+  file="${file// /_}"
+
+  case "$file" in
     *"_x64_"* | *"_x64."*)
       arch="x64"
       ;;
@@ -476,7 +550,7 @@ fromFile() {
   local add=""
   [[ "$arch" != "x64" ]] && add="$arch"
 
-  case "${file// /_}" in
+  case "$file" in
     "win7"* | "win_7"* | *"windows7"* | *"windows_7"* )
       id="win7${arch}"
       ;;
@@ -503,6 +577,9 @@ fromFile() {
       ;;
     "tiny10"* | "tiny_10"* )
       id="tiny10"
+      ;;
+    *"_serverhypercore_"* )
+      id="win2019${add}-hv"
       ;;
     *"server2025"* | *"server_2025"* )
       id="win2025${add}"
@@ -548,7 +625,9 @@ fromName() {
     *"windows 7"* ) id="win7${arch}" ;;
     *"windows 8"* ) id="win81${arch}" ;;
     *"windows 10"* ) id="win10${arch}" ;;
+    *"optimum 10"* ) id="win10${arch}" ;;
     *"windows 11"* ) id="win11${arch}" ;;
+    *"optimum 11"* ) id="win11${arch}" ;;
     *"windows vista"* ) id="winvista${arch}" ;;
     *"server 2025"* ) id="win2025${add}" ;;
     *"server 2022"* ) id="win2022${add}" ;;
@@ -557,6 +636,7 @@ fromName() {
     *"server 2012"* ) id="win2012r2${add}" ;;
     *"server 2008"* ) id="win2008r2${add}" ;;
     *"server 2003"* ) id="win2003r2${add}" ;;
+    *"hyper-v server"* ) id="win2019${add}" ;;
   esac
 
   echo "$id"
@@ -577,6 +657,7 @@ getVersion() {
           *" home"* ) id="$id-home" ;;
           *" starter"* ) id="$id-starter" ;;
           *" ultimate"* ) id="$id-ultimate" ;;
+          *" enterprise evaluation"* ) id="$id-enterprise-eval" ;;
           *" enterprise"* ) id="$id-enterprise" ;;
         esac
       ;;
@@ -599,6 +680,7 @@ getVersion() {
     "win2025"* | "win2022"* | "win2019"* | "win2016"* | "win2012"* | "win2008"* | "win2003"* )
        case "${name,,}" in
           *" evaluation"* ) id="$id-eval" ;;
+          *"hyper-v server"* ) id="$id-hv" ;;
         esac
       ;;
   esac
@@ -621,6 +703,9 @@ switchEdition() {
     "win81${PLATFORM,,}-enterprise-eval" )
       DETECTED="win81${PLATFORM,,}-enterprise"
       ;;
+    "win7${PLATFORM,,}" | "win7${PLATFORM,,}-enterprise-eval" )
+      DETECTED="win7${PLATFORM,,}-enterprise"
+      ;;
     "win2025-eval" ) DETECTED="win2025" ;;
     "win2022-eval" ) DETECTED="win2022" ;;
     "win2019-eval" ) DETECTED="win2019" ;;
@@ -637,6 +722,7 @@ getMido() {
   local id="$1"
   local lang="$2"
   local ret="$3"
+  local url=""
   local sum=""
   local size=""
 
@@ -648,16 +734,14 @@ getMido() {
       sum="b56b911bf18a2ceaeb3904d87e7c770bdf92d3099599d61ac2497b91bf190b11"
       ;;
     "win11x64-enterprise-eval" )
-      size=6209064960
-      sum="c8dbc96b61d04c8b01faf6ce0794fdf33965c7b350eaa3eb1e6697019902945c"
+      size=4295096320
+      sum="dad633276073f14f3e0373ef7e787569e216d54942ce522b39451c8f2d38ad43"
+      url="https://software-static.download.prss.microsoft.com/dbazure/888969d5-f34g-4e03-ac9d-1f9786c66749/26100.1.240331-1435.ge_release_CLIENTENTERPRISEEVAL_OEMRET_A64FRE_en-us.iso"
       ;;
-    "win11x64-enterprise-ltsc-eval" )
-      size=4428627968
-      sum="8abf91c9cd408368dc73aab3425d5e3c02dae74900742072eb5c750fc637c195"
-      ;;
-    "win11x64-enterprise-iot-eval" )
-      size=4428627968
-      sum="8abf91c9cd408368dc73aab3425d5e3c02dae74900742072eb5c750fc637c195"
+    "win11x64-enterprise-iot-eval" | "win11x64-enterprise-ltsc-eval" )
+      size=5060020224
+      sum="2cee70bd183df42b92a2e0da08cc2bb7a2a9ce3a3841955a012c0f77aeb3cb29"
+      url="https://software-static.download.prss.microsoft.com/dbazure/888969d5-f34g-4e03-ac9d-1f9786c66749/26100.1.240331-1435.ge_release_CLIENT_IOT_LTSC_EVAL_x64FRE_en-us.iso"
       ;;
     "win10x64" )
       size=6140975104
@@ -666,49 +750,59 @@ getMido() {
     "win10x64-enterprise-eval" )
       size=5550497792
       sum="ef7312733a9f5d7d51cfa04ac497671995674ca5e1058d5164d6028f0938d668"
+      url="https://software-static.download.prss.microsoft.com/dbazure/988969d5-f34g-4e03-ac9d-1f9786c66750/19045.2006.220908-0225.22h2_release_svc_refresh_CLIENTENTERPRISEEVAL_OEMRET_x64FRE_en-us.iso"
       ;;
     "win10x64-enterprise-ltsc-eval" )
       size=4898582528
       sum="e4ab2e3535be5748252a8d5d57539a6e59be8d6726345ee10e7afd2cb89fefb5"
-      ;;
-    "win81x64" )
-      size=4320526336
-      sum="d8333cf427eb3318ff6ab755eb1dd9d433f0e2ae43745312c1cd23e83ca1ce51"
+      url="https://software-download.microsoft.com/download/pr/19044.1288.211006-0501.21h2_release_svc_refresh_CLIENT_LTSC_EVAL_x64FRE_en-us.iso"
       ;;
     "win81x64-enterprise-eval" )
       size=3961473024
       sum="2dedd44c45646c74efc5a028f65336027e14a56f76686a4631cf94ffe37c72f2"
+      url="https://download.microsoft.com/download/B/9/9/B999286E-0A47-406D-8B3D-5B5AD7373A4A/9600.17050.WINBLUE_REFRESH.140317-1640_X64FRE_ENTERPRISE_EVAL_EN-US-IR3_CENA_X64FREE_EN-US_DV9.ISO"
       ;;
     "win2025-eval" )
-      size=5307996160
-      sum="16442d1c0509bcbb25b715b1b322a15fb3ab724a42da0f384b9406ca1c124ed4"
+      size=6014152704
+      sum="d0ef4502e350e3c6c53c15b1b3020d38a5ded011bf04998e950720ac8579b23d"
+      url="https://software-static.download.prss.microsoft.com/dbazure/888969d5-f34g-4e03-ac9d-1f9786c66749/26100.1742.240906-0331.ge_release_svc_refresh_SERVER_EVAL_x64FRE_en-us.iso"
       ;;
     "win2022-eval" )
       size=5044094976
       sum="3e4fa6d8507b554856fc9ca6079cc402df11a8b79344871669f0251535255325"
+      url="https://software-static.download.prss.microsoft.com/sg/download/888969d5-f34g-4e03-ac9d-1f9786c66749/SERVER_EVAL_x64FRE_en-us.iso"
       ;;
     "win2019-eval" )
       size=5652088832
       sum="6dae072e7f78f4ccab74a45341de0d6e2d45c39be25f1f5920a2ab4f51d7bcbb"
+      url="https://software-download.microsoft.com/download/pr/17763.737.190906-2324.rs5_release_svc_refresh_SERVER_EVAL_x64FRE_en-us_1.iso"
+     ;;
+    "win2019-hv" )
+      size=3072712704
+      sum="48e9b944518e5bbc80876a9a7ff99716f386f404f4be48dca47e16a66ae7872c"
+      url="https://software-download.microsoft.com/download/pr/17763.557.190612-0019.rs5_release_svc_refresh_SERVERHYPERCORE_OEM_x64FRE_en-us.ISO"
      ;;
     "win2016-eval" )
       size=6972221440
       sum="1ce702a578a3cb1ac3d14873980838590f06d5b7101c5daaccbac9d73f1fb50f"
+      url="https://software-download.microsoft.com/download/pr/Windows_Server_2016_Datacenter_EVAL_en-us_14393_refresh.ISO"
       ;;
     "win2012r2-eval" )
       size=4542291968
       sum="6612b5b1f53e845aacdf96e974bb119a3d9b4dcb5b82e65804ab7e534dc7b4d5"
+      url="https://download.microsoft.com/download/6/2/A/62A76ABB-9990-4EFC-A4FE-C7D698DAEB96/9600.17050.WINBLUE_REFRESH.140317-1640_X64FRE_SERVER_EVAL_EN-US-IR3_SSS_X64FREE_EN-US_DV9.ISO"
       ;;
     "win2008r2" )
       size=3166840832
       sum="30832ad76ccfa4ce48ccb936edefe02079d42fb1da32201bf9e3a880c8ed6312"
+      url="https://download.microsoft.com/download/4/1/D/41DEA7E0-B30D-4012-A1E3-F24DC03BA1BB/7601.17514.101119-1850_x64fre_server_eval_en-us-GRMSXEVAL_EN_DVD.iso"
       ;;
   esac
 
   case "${ret,,}" in
     "sum" ) echo "$sum" ;;
     "size" ) echo "$size" ;;
-    *) echo "";;
+    *) echo "$url";;
   esac
 
   return 0
@@ -730,25 +824,23 @@ getLink1() {
 
   case "${id,,}" in
     "win11x64" | "win11x64-enterprise" | "win11x64-enterprise-eval" )
-      size=5946128384
-      sum="5bb1459034f50766ee480d895d751af73a4af30814240ae32ebc5633546a5af7"
-      url="11/en-us_windows_11_23h2_x64.iso"
+      size=5332989952
+      sum="aa1ad990f930d907b7a34ea897abbb0dfbe47552ca8acc146f92e40381839e05"
+      url="11/en-us_windows_11_24h2_x64.iso"
       ;;
     "win11x64-iot" | "win11x64-enterprise-iot-eval" )
-      [[ "${lang,,}" != "en" ]] && [[ "${lang,,}" != "en-us" ]] && return 0
       size=5144817664
       sum="4f59662a96fc1da48c1b415d6c369d08af55ddd64e8f1c84e0166d9e50405d7a"
       url="11/X23-81951_26100.1742.240906-0331.ge_release_svc_refresh_CLIENT_ENTERPRISES_OEM_x64FRE_en-us.iso"
       ;;
     "win11x64-ltsc" | "win11x64-enterprise-ltsc-eval" )
-      [[ "${lang,,}" != "en" ]] && [[ "${lang,,}" != "en-us" ]] && return 0
       size=5144817664
       sum="4f59662a96fc1da48c1b415d6c369d08af55ddd64e8f1c84e0166d9e50405d7a"
       url="11/X23-81951_26100.1742.240906-0331.ge_release_svc_refresh_CLIENT_ENTERPRISES_OEM_x64FRE_en-us.iso"
       ;;
     "win10x64" | "win10x64-enterprise" | "win10x64-enterprise-eval" )
-      size=5623582720
-      sum="57371545d752a79a8a8b163b209c7028915da661de83516e06ddae913290a855"
+      size=5535252480
+      sum="557871965263d0fd0a1ea50b5d0d0d7cb04a279148ca905c1c675c9bc0d5486c"
       url="10/en-us_windows_10_22h2_x64.iso"
       ;;
     "win10x64-iot" | "win10x64-enterprise-iot-eval" )
@@ -765,6 +857,11 @@ getLink1() {
       size=4320526336
       sum="d8333cf427eb3318ff6ab755eb1dd9d433f0e2ae43745312c1cd23e83ca1ce51"
       url="8.x/8.1/en_windows_8.1_with_update_x64_dvd_6051480.iso"
+      ;;
+    "win81x64-enterprise" | "win81x64-enterprise-eval" )
+      size=4139163648
+      sum="c3c604c03677504e8905090a8ce5bb1dde76b6fd58e10f32e3a25bef21b2abe1"
+      url="8.x/8.1/en_windows_8.1_enterprise_with_update_x64_dvd_6054382.iso"
       ;;
     "win2025" | "win2025-eval" )
       size=5307176960
@@ -796,35 +893,40 @@ getLink1() {
       sum="dfd9890881b7e832a927c38310fb415b7ea62ac5a896671f2ce2a111998f0df8"
       url="server/2008r2/en_windows_server_2008_r2_with_sp1_x64_dvd_617601-018.iso"
       ;;
-    "win7x64" | "win7x64-enterprise" )
-      size=3182604288
-      sum="ee69f3e9b86ff973f632db8e01700c5724ef78420b175d25bae6ead90f6805a7"
-      url="7/en_windows_7_enterprise_with_sp1_x64_dvd_u_677651.iso"
-      ;;
-    "win7x64-ultimate" )
+    "win7x64" | "win7x64-ultimate" )
       size=3320836096
       sum="0b738b55a5ea388ad016535a5c8234daf2e5715a0638488ddd8a228a836055a1"
       url="7/en_windows_7_with_sp1_x64.iso"
       ;;
-    "win7x86" | "win7x86-enterprise" )
-      size=2434502656
-      sum="8bdd46ff8cb8b8de9c4aba02706629c8983c45e87da110e64e13be17c8434dad"
-      url="7/en_windows_7_enterprise_with_sp1_x86_dvd_u_677710.iso"
+    "win7x64-enterprise" | "win7x64-enterprise-eval" )
+      size=3182604288
+      sum="ee69f3e9b86ff973f632db8e01700c5724ef78420b175d25bae6ead90f6805a7"
+      url="7/en_windows_7_enterprise_with_sp1_x64_dvd_u_677651.iso"
       ;;
-    "win7x86-ultimate" )
+    "win7x86" | "win7x86-ultimate" )
       size=2564411392
       sum="99f3369c90160816be07093dbb0ac053e0a84e52d6ed1395c92ae208ccdf67e5"
       url="7/en_windows_7_with_sp1_x86.iso"
       ;;
-    "winvistax64-ultimate" )
+    "win7x86-enterprise" | "win7x86-enterprise-eval" )
+      size=2434502656
+      sum="8bdd46ff8cb8b8de9c4aba02706629c8983c45e87da110e64e13be17c8434dad"
+      url="7/en_windows_7_enterprise_with_sp1_x86_dvd_u_677710.iso"
+      ;;
+    "winvistax64" | "winvistax64-ultimate" )
       size=3861460992
       sum="edf9f947c5791469fd7d2d40a5dcce663efa754f91847aa1d28ed7f585675b78"
       url="vista/en_windows_vista_sp2_x64_dvd_342267.iso"
       ;;
-    "winvistax86-ultimate" )
+    "winvistax86" | "winvistax86-ultimate" )
       size=3243413504
       sum="9c36fed4255bd05a8506b2da88f9aad73643395e155e609398aacd2b5276289c"
       url="vista/en_windows_vista_with_sp2_x86_dvd_342266.iso"
+      ;;
+    "win2003r2" )
+      size=731650535
+      sum="6b64bbae7eb00fd000cc887ffdc9f224d00c557daad7f756cfa373950b880dc8"
+      url="server/2003r2/en_win_srv_2003_r2_standard_x64_with_sp2_cd1_cd2.zip"
       ;;
     "winxpx86" )
       size=617756672
@@ -835,6 +937,11 @@ getLink1() {
       size=614166528
       sum="8fac68e1e56c64ad9a2aa0ad464560282e67fa4f4dd51d09a66f4e548eb0f2d6"
       url="xp/professional/en_win_xp_pro_x64_vl.iso"
+      ;;
+    "win2kx86" )
+      size=331701982
+      sum="a93251b31f92316411bb48458a695d9051b13cdeba714c46f105012fdda45bf3"
+      url="2000/5.00.2195.6717_x86fre_client-professional_retail_en-us.7z"
       ;;
   esac
 
@@ -880,45 +987,45 @@ getLink2() {
       sum="dfd9890881b7e832a927c38310fb415b7ea62ac5a896671f2ce2a111998f0df8"
       url="Windows%20Server%202008%20R2/en_windows_server_2008_r2_with_sp1_x64_dvd_617601.iso"
       ;;
-    "win7x64" | "win7x64-enterprise" )
-      size=3182604288
-      sum="ee69f3e9b86ff973f632db8e01700c5724ef78420b175d25bae6ead90f6805a7"
-      url="Windows%207/en_windows_7_enterprise_with_sp1_x64_dvd_u_677651.iso"
-      ;;
-    "win7x64-ultimate" )
+    "win7x64" | "win7x64-ultimate" )
       size=3320903680
       sum="36f4fa2416d0982697ab106e3a72d2e120dbcdb6cc54fd3906d06120d0653808"
       url="Windows%207/en_windows_7_ultimate_with_sp1_x64_dvd_u_677332.iso"
       ;;
-    "win7x86" | "win7x86-enterprise" )
-      size=2434502656
-      sum="8bdd46ff8cb8b8de9c4aba02706629c8983c45e87da110e64e13be17c8434dad"
-      url="Windows%207/en_windows_7_enterprise_with_sp1_x86_dvd_u_677710.iso"
+    "win7x64-enterprise" | "win7x64-enterprise-eval" )
+      size=3182604288
+      sum="ee69f3e9b86ff973f632db8e01700c5724ef78420b175d25bae6ead90f6805a7"
+      url="Windows%207/en_windows_7_enterprise_with_sp1_x64_dvd_u_677651.iso"
       ;;
-    "win7x86-ultimate" )
+    "win7x86" | "win7x86-ultimate" )
       size=2564476928
       sum="e2c009a66d63a742941f5087acae1aa438dcbe87010bddd53884b1af6b22c940"
       url="Windows%207/en_windows_7_ultimate_with_sp1_x86_dvd_u_677460.iso"
       ;;
-    "winvistax64" | "winvistax64-enterprise" )
-      size=3205953536
-      sum="0a0cd511b3eac95c6f081419c9c65b12317b9d6a8d9707f89d646c910e788016"
-      url="Windows%20Vista/en_windows_vista_enterprise_sp2_x64_dvd_342332.iso"
+    "win7x86-enterprise" | "win7x86-enterprise-eval" )
+      size=2434502656
+      sum="8bdd46ff8cb8b8de9c4aba02706629c8983c45e87da110e64e13be17c8434dad"
+      url="Windows%207/en_windows_7_enterprise_with_sp1_x86_dvd_u_677710.iso"
       ;;
-    "winvistax64-ultimate" )
+    "winvistax64" | "winvistax64-ultimate" )
       size=3861460992
       sum="edf9f947c5791469fd7d2d40a5dcce663efa754f91847aa1d28ed7f585675b78"
       url="Windows%20Vista/en_windows_vista_sp2_x64_dvd_342267.iso"
       ;;
-    "winvistax86" | "winvistax86-enterprise" )
-      size=2420981760
-      sum="54e2720004041e7db988a391543ea5228b0affc28efcf9303d2d0ff9402067f5"
-      url="Windows%20Vista/en_windows_vista_enterprise_sp2_x86_dvd_342329.iso"
+    "winvistax64-enterprise" )
+      size=3205953536
+      sum="0a0cd511b3eac95c6f081419c9c65b12317b9d6a8d9707f89d646c910e788016"
+      url="Windows%20Vista/en_windows_vista_enterprise_sp2_x64_dvd_342332.iso"
       ;;
-    "winvistax86-ultimate" )
+    "winvistax86" | "winvistax86-ultimate" )
       size=3243413504
       sum="9c36fed4255bd05a8506b2da88f9aad73643395e155e609398aacd2b5276289c"
       url="Windows%20Vista/en_windows_vista_with_sp2_x86_dvd_342266.iso"
+      ;;
+    "winvistax86-enterprise" )
+      size=2420981760
+      sum="54e2720004041e7db988a391543ea5228b0affc28efcf9303d2d0ff9402067f5"
+      url="Windows%20Vista/en_windows_vista_enterprise_sp2_x86_dvd_342329.iso"
       ;;
     "win2003r2" )
       size=652367872
@@ -948,553 +1055,36 @@ getLink2() {
 
 getLink3() {
 
-  # Fallbacks for users who cannot connect to the Microsoft servers
-
   local id="$1"
   local lang="$2"
   local ret="$3"
   local url=""
   local sum=""
   local size=""
-  local host="https://drive.massgrave.dev"
+  local host="https://nixsys.com/drivers"
 
-  culture=$(getLanguage "$lang" "culture")
+  [[ "${lang,,}" != "en" ]] && [[ "${lang,,}" != "en-us" ]] && return 0
 
   case "${id,,}" in
-    "win11x64-iot" | "win11x64-enterprise-iot-eval" )
-      [[ "${lang,,}" != "en" ]] && [[ "${lang,,}" != "en-us" ]] && return 0
-      size=5144817664
-      sum="4f59662a96fc1da48c1b415d6c369d08af55ddd64e8f1c84e0166d9e50405d7a"
-      url="X23-81951_26100.1742.240906-0331.ge_release_svc_refresh_CLIENT_ENTERPRISES_OEM_x64FRE_en-us.iso"
+    "win7x64" | "win7x64-ultimate" )
+      size=3319478272
+      sum="3286963e1476082ba882a5058c205c264772bead9e99e15cd1cb255f04b72900"
+      url="WINDOWS764_EN_DVD.iso"
       ;;
-    "win11x64-ltsc" | "win11x64-enterprise-ltsc-eval" )
-      [[ "${lang,,}" != "en" ]] && [[ "${lang,,}" != "en-us" ]] && return 0
-      size=5144817664
-      sum="4f59662a96fc1da48c1b415d6c369d08af55ddd64e8f1c84e0166d9e50405d7a"
-      url="X23-81951_26100.1742.240906-0331.ge_release_svc_refresh_CLIENT_ENTERPRISES_OEM_x64FRE_en-us.iso"
-      ;;
-    "win10x64-ltsc" | "win10x64-enterprise-ltsc-eval" )
-      case "${culture,,}" in
-        "ar" | "ar-"* ) url="ar-sa_windows_10_enterprise_ltsc_2021_x64_dvd_60bc2a7a.iso" ;;
-        "bg" | "bg-"* ) url="bg-bg_windows_10_enterprise_ltsc_2021_x64_dvd_b0887275.iso" ;;
-        "cs" | "cs-"* ) url="cs-cz_windows_10_enterprise_ltsc_2021_x64_dvd_d624c653.iso" ;;
-        "da" | "da-"* ) url="da-dk_windows_10_enterprise_ltsc_2021_x64_dvd_6ec511bb.iso" ;;
-        "de" | "de-"* ) url="de-de_windows_10_enterprise_ltsc_2021_x64_dvd_71796d33.iso" ;;
-        "el" | "el-"* ) url="el-gr_windows_10_enterprise_ltsc_2021_x64_dvd_c83eab34.iso" ;;
-        "gb" | "en-gb" ) url="en-gb_windows_10_enterprise_ltsc_2021_x64_dvd_7fe51fe8.iso" ;;
-        "en" | "en-"* )
-          size=4899461120
-          sum="c90a6df8997bf49e56b9673982f3e80745058723a707aef8f22998ae6479597d"
-          url="en-us_windows_10_enterprise_ltsc_2021_x64_dvd_d289cf96.iso" ;;
-        "mx" | "es-mx" ) url="es-mx_windows_10_enterprise_ltsc_2021_x64_dvd_f6aaf384.iso" ;;
-        "es" | "es-"* ) url="es-es_windows_10_enterprise_ltsc_2021_x64_dvd_51d721ea.iso" ;;
-        "et" | "et-"* ) url="et-ee_windows_10_enterprise_ltsc_2021_x64_dvd_012a5c50.iso" ;;
-        "fi" | "fi-"* ) url="fi-fi_windows_10_enterprise_ltsc_2021_x64_dvd_551582d9.iso" ;;
-        "ca" | "fr-ca" ) url="fr-ca_windows_10_enterprise_ltsc_2021_x64_dvd_2770e649.iso" ;;
-        "fr" | "fr-"* ) url="fr-fr_windows_10_enterprise_ltsc_2021_x64_dvd_bda01eb0.iso" ;;
-        "he" | "he-"* ) url="he-il_windows_10_enterprise_ltsc_2021_x64_dvd_3a55ecd6.iso" ;;
-        "hr" | "hr-"* ) url="hr-hr_windows_10_enterprise_ltsc_2021_x64_dvd_f5085b75.iso" ;;
-        "hu" | "hu-"* ) url="hu-hu_windows_10_enterprise_ltsc_2021_x64_dvd_d541ddb3.iso" ;;
-        "it" | "it-"* ) url="it-it_windows_10_enterprise_ltsc_2021_x64_dvd_0c1aa034.iso" ;;
-        "ja" | "ja-"* ) url="ja-jp_windows_10_enterprise_ltsc_2021_x64_dvd_ef58c6a1.iso" ;;
-        "ko" | "ko-"* ) url="ko-kr_windows_10_enterprise_ltsc_2021_x64_dvd_6d26f398.iso" ;;
-        "lt" | "lt-"* ) url="lt-lt_windows_10_enterprise_ltsc_2021_x64_dvd_9ffbbd5b.iso" ;;
-        "lv" | "lv-"* ) url="lv-lv_windows_10_enterprise_ltsc_2021_x64_dvd_6c89d2e0.iso" ;;
-        "nb" | "nb-"* ) url="nb-no_windows_10_enterprise_ltsc_2021_x64_dvd_c65c51a5.iso" ;;
-        "nl" | "nl-"* ) url="nl-nl_windows_10_enterprise_ltsc_2021_x64_dvd_88f53466.iso" ;;
-        "pl" | "pl-"* ) url="pl-pl_windows_10_enterprise_ltsc_2021_x64_dvd_eff40776.iso" ;;
-        "br" | "pt-br" ) url="pt-br_windows_10_enterprise_ltsc_2021_x64_dvd_f318268e.iso" ;;
-        "pt" | "pt-"* ) url="pt-pt_windows_10_enterprise_ltsc_2021_x64_dvd_f2e9b6a0.iso" ;;
-        "ro" | "ro-"* ) url="ro-ro_windows_10_enterprise_ltsc_2021_x64_dvd_ae2284d6.iso" ;;
-        "ru" | "ru-"* ) url="ru-ru_windows_10_enterprise_ltsc_2021_x64_dvd_5044a1e7.iso" ;;
-        "sk" | "sk-"* ) url="sk-sk_windows_10_enterprise_ltsc_2021_x64_dvd_d6c64c5f.iso" ;;
-        "sl" | "sl-"* ) url="sl-si_windows_10_enterprise_ltsc_2021_x64_dvd_ec090386.iso" ;;
-        "sr" | "sr-"* ) url="sr-latn-rs_windows_10_enterprise_ltsc_2021_x64_dvd_2d2f8815.iso" ;;
-        "sv" | "sv-"* ) url="sv-se_windows_10_enterprise_ltsc_2021_x64_dvd_9a28bb6b.iso" ;;
-        "th" | "th-"* ) url="th-th_windows_10_enterprise_ltsc_2021_x64_dvd_b7ed34d6.iso" ;;
-        "tr" | "tr-"* ) url="tr-tr_windows_10_enterprise_ltsc_2021_x64_dvd_e55b1896.iso" ;;
-        "uk" | "uk-"* ) url="uk-ua_windows_10_enterprise_ltsc_2021_x64_dvd_816da3c3.iso" ;;
-        "zh-hk" | "zh-tw" ) url="zh-tw_windows_10_enterprise_ltsc_2021_x64_dvd_80dba877.iso" ;;
-        "zh" | "zh-"* ) url="zh-cn_windows_10_enterprise_ltsc_2021_x64_dvd_033b7312.iso" ;;
-      esac
-      ;;
-    "win10x64-iot" | "win10x64-enterprise-iot-eval" )
-      [[ "${lang,,}" != "en" ]] && [[ "${lang,,}" != "en-us" ]] && return 0
-      size=4851668992
-      sum="a0334f31ea7a3e6932b9ad7206608248f0bd40698bfb8fc65f14fc5e4976c160"
-      url="en-us_windows_10_iot_enterprise_ltsc_2021_x64_dvd_257ad90f.iso"
-      ;;
-    "win81x64-enterprise" | "win81x64-enterprise-eval" )
-      case "${culture,,}" in
-        "ar" | "ar-"* ) url="ar_windows_8.1_enterprise_with_update_x64_dvd_6050360.iso" ;;
-        "bg" | "bg-"* ) url="bg_windows_8.1_enterprise_with_update_x64_dvd_6050367.iso" ;;
-        "cs" | "cs-"* ) url="cs_windows_8.1_enterprise_with_update_x64_dvd_6050393.iso" ;;
-        "da" | "da-"* ) url="da_windows_8.1_enterprise_with_update_x64_dvd_6050394.iso" ;;
-        "de" | "de-"* ) url="de_windows_8.1_enterprise_with_update_x64_dvd_6050501.iso" ;;
-        "el" | "el-"* ) url="el_windows_8.1_enterprise_with_update_x64_dvd_6050503.iso" ;;
-        "gb" | "en-gb" ) url="en-gb_windows_8.1_enterprise_with_update_x64_dvd_6054383.iso" ;;
-        "en" | "en-"* )
-          size=4139163648
-          sum="c3c604c03677504e8905090a8ce5bb1dde76b6fd58e10f32e3a25bef21b2abe1"
-          url="en_windows_8.1_enterprise_with_update_x64_dvd_6054382.iso" ;;
-        "es" | "es-"* ) url="es_windows_8.1_enterprise_with_update_x64_dvd_6050578.iso" ;;
-        "et" | "et-"* ) url="et_windows_8.1_enterprise_with_update_x64_dvd_6054384.iso" ;;
-        "fi" | "fi-"* ) url="fi_windows_8.1_enterprise_with_update_x64_dvd_6050497.iso" ;;
-        "fr" | "fr-"* ) url="fr_windows_8.1_enterprise_with_update_x64_dvd_6050499.iso" ;;
-        "he" | "he-"* ) url="he_windows_8.1_enterprise_with_update_x64_dvd_6050504.iso" ;;
-        "hr" | "hr-"* ) url="hr_windows_8.1_enterprise_with_update_x64_dvd_6050391.iso" ;;
-        "hu" | "hu-"* ) url="hu_windows_8.1_enterprise_with_update_x64_dvd_6050505.iso" ;;
-        "it" | "it-"* ) url="it_windows_8.1_enterprise_with_update_x64_dvd_6050507.iso" ;;
-        "ja" | "ja-"* ) url="ja_windows_8.1_enterprise_with_update_x64_dvd_6050508.iso" ;;
-        "ko" | "ko-"* ) url="ko_windows_8.1_enterprise_with_update_x64_dvd_6050509.iso" ;;
-        "lt" | "lt-"* ) url="lt_windows_8.1_enterprise_with_update_x64_dvd_6050511.iso" ;;
-        "lv" | "lv-"* ) url="lv_windows_8.1_enterprise_with_update_x64_dvd_6050510.iso" ;;
-        "nb" | "nb-"* ) url="nb_windows_8.1_enterprise_with_update_x64_dvd_6050512.iso" ;;
-        "nl" | "nl-"* ) url="nl_windows_8.1_enterprise_with_update_x64_dvd_6054381.iso" ;;
-        "pl" | "pl-"* ) url="pl_windows_8.1_enterprise_with_update_x64_dvd_6050515.iso" ;;
-        "br" | "pt-br" ) url="pt_windows_8.1_enterprise_with_update_x64_dvd_6050521.iso" ;;
-        "pt" | "pt-"* ) url="pp_windows_8.1_enterprise_with_update_x64_dvd_6050526.iso" ;;
-        "ro" | "ro-"* ) url="ro_windows_8.1_enterprise_with_update_x64_dvd_6050534.iso" ;;
-        "ru" | "ru-"* ) url="ru_windows_8.1_enterprise_with_update_x64_dvd_6050542.iso" ;;
-        "sk" | "sk-"* ) url="sk_windows_8.1_enterprise_with_update_x64_dvd_6050562.iso" ;;
-        "sl" | "sl-"* ) url="sl_windows_8.1_enterprise_with_update_x64_dvd_6050570.iso" ;;
-        "sr" | "sr-"* ) url="sr-latn_windows_8.1_enterprise_with_update_x64_dvd_6050553.iso" ;;
-        "sv" | "sv-"* ) url="sv_windows_8.1_enterprise_with_update_x64_dvd_6050590.iso" ;;
-        "th" | "th-"* ) url="th_windows_8.1_enterprise_with_update_x64_dvd_6050602.iso" ;;
-        "tr" | "tr-"* ) url="tr_windows_8.1_enterprise_with_update_x64_dvd_6050609.iso" ;;
-        "uk" | "uk-"* ) url="uk_windows_8.1_enterprise_with_update_x64_dvd_6050618.iso" ;;
-        "zh-hk" ) url="hk_windows_8.1_enterprise_with_update_x64_dvd_6050380.iso" ;;
-        "zh-tw" ) url="tw_windows_8.1_enterprise_with_update_x64_dvd_6050387.iso" ;;
-        "zh" | "zh-"* ) url="cn_windows_8.1_enterprise_with_update_x64_dvd_6050374.iso" ;;
-      esac
-      ;;
-    "win2025" | "win2025-eval" )
-      case "${culture,,}" in
-        "cs" | "cs-"* ) url="cs-cz_windows_server_2025_preview_x64_dvd_8b1f5b49.iso" ;;
-        "de" | "de-"* ) url="de-de_windows_server_2025_preview_x64_dvd_1c3dfe1c.iso" ;;
-        "en" | "en-"* )
-          size=5307176960
-          sum="2293897341febdcea599f5412300b470b5288c6fd2b89666a7b27d283e8d3cf3"
-          url="en-us_windows_server_2025_preview_x64_dvd_ce9eb1a5.iso" ;;
-        "es" | "es-"* ) url="es-es_windows_server_2025_preview_x64_dvd_b07cc858.iso" ;;
-        "fr" | "fr-"* ) url="fr-fr_windows_server_2025_preview_x64_dvd_036e8a78.iso" ;;
-        "hu" | "hu-"* ) url="hu-hu_windows_server_2025_preview_x64_dvd_2d5d77e5.iso" ;;
-        "it" | "it-"* ) url="it-it_windows_server_2025_preview_x64_dvd_eaccac73.iso" ;;
-        "ja" | "ja-"* ) url="ja-jp_windows_server_2025_preview_x64_dvd_62f802be.iso" ;;
-        "ko" | "ko-"* ) url="ko-kr_windows_server_2025_preview_x64_dvd_e2c3e8f0.iso" ;;
-        "nl" | "nl-"* ) url="nl-nl_windows_server_2025_preview_x64_dvd_314b4ed1.iso" ;;
-        "pl" | "pl-"* ) url="pl-pl_windows_server_2025_preview_x64_dvd_be4b099e.iso" ;;
-        "br" | "pt-br" ) url="pt-br_windows_server_2025_preview_x64_dvd_993c803a.iso" ;;
-        "pt" | "pt-"* ) url="pt-pt_windows_server_2025_preview_x64_dvd_869aa534.iso" ;;
-        "ru" | "ru-"* ) url="ru-ru_windows_server_2025_preview_x64_dvd_5ada1817.iso" ;;
-        "sv" | "sv-"* ) url="sv-se_windows_server_2025_preview_x64_dvd_5fafd4f7.iso" ;;
-        "tr" | "tr-"* ) url="tr-tr_windows_server_2025_preview_x64_dvd_3aab7fda.iso" ;;
-        "zh-hk" | "zh-tw" ) url="zh-tw_windows_server_2025_preview_x64_dvd_9b147dcd.iso" ;;
-        "zh" | "zh-"* ) url="zh-cn_windows_server_2025_preview_x64_dvd_a12bb0bf.iso" ;;
-      esac
-      ;;
-    "win2019" | "win2019-eval" )
-      case "${culture,,}" in
-        "cs" | "cs-"* ) url="cs-cz_windows_server_2019_x64_dvd_3781c31c.iso" ;;
-        "de" | "de-"* ) url="de-de_windows_server_2019_x64_dvd_132f7aa4.iso" ;;
-        "en" | "en-"* )
-          size=5651695616
-          sum="ea247e5cf4df3e5829bfaaf45d899933a2a67b1c700a02ee8141287a8520261c"
-          url="en-us_windows_server_2019_x64_dvd_f9475476.iso" ;;
-        "es" | "es-"* ) url="es-es_windows_server_2019_x64_dvd_3ce0fd9e.iso" ;;
-        "fr" | "fr-"* ) url="fr-fr_windows_server_2019_x64_dvd_f6f6acf6.iso" ;;
-        "hu" | "hu-"* ) url="hu-hu_windows_server_2019_x64_dvd_1d834c46.iso" ;;
-        "it" | "it-"* ) url="it-it_windows_server_2019_x64_dvd_454267de.iso" ;;
-        "ja" | "ja-"* ) url="ja-jp_windows_server_2019_x64_dvd_3899c3a3.iso" ;;
-        "ko" | "ko-"* ) url="ko-kr_windows_server_2019_x64_dvd_84101c0a.iso" ;;
-        "nl" | "nl-"* ) url="nl-nl_windows_server_2019_x64_dvd_f69d914e.iso" ;;
-        "pl" | "pl-"* ) url="pl-pl_windows_server_2019_x64_dvd_a50263e1.iso" ;;
-        "br" | "pt-br" ) url="pt-br_windows_server_2019_x64_dvd_aee8c1c2.iso" ;;
-        "pt" | "pt-"* ) url="pt-pt_windows_server_2019_x64_dvd_464373e8.iso" ;;
-        "ru" | "ru-"* ) url="ru-ru_windows_server_2019_x64_dvd_e02b76ba.iso" ;;
-        "sv" | "sv-"* ) url="sv-se_windows_server_2019_x64_dvd_48c1aeff.iso" ;;
-        "tr" | "tr-"* ) url="tr-tr_windows_server_2019_x64_dvd_b51af600.iso" ;;
-        "zh-hk" | "zh-tw" ) url="zh-tw_windows_server_2019_x64_dvd_a4c80409.iso" ;;
-        "zh" | "zh-"* ) url="zh-cn_windows_server_2019_x64_dvd_19d65722.iso" ;;
-      esac
-      ;;
-    "win7x64" | "win7x64-enterprise" )
-      case "${culture,,}" in
-        "ar" | "ar-"* ) url="ar_windows_7_enterprise_with_sp1_x64_dvd_u_677643.iso" ;;
-        "bg" | "bg-"* ) url="bg_windows_7_enterprise_with_sp1_x64_dvd_u_677644.iso" ;;
-        "cs" | "cs-"* ) url="cs_windows_7_enterprise_with_sp1_x64_dvd_u_677646.iso" ;;
-        "da" | "da-"* ) url="da_windows_7_enterprise_with_sp1_x64_dvd_u_677648.iso" ;;
-        "de" | "de-"* ) url="de_windows_7_enterprise_with_sp1_x64_dvd_u_677649.iso" ;;
-        "el" | "el-"* ) url="el_windows_7_enterprise_with_sp1_x64_dvd_u_677650.iso" ;;
-        "en" | "en-"* )
-          size=3182604288
-          sum="ee69f3e9b86ff973f632db8e01700c5724ef78420b175d25bae6ead90f6805a7"
-          url="en_windows_7_enterprise_with_sp1_x64_dvd_u_677651.iso" ;;
-        "es" | "es-"* ) url="es_windows_7_enterprise_with_sp1_x64_dvd_u_677652.iso" ;;
-        "et" | "et-"* ) url="et_windows_7_enterprise_with_sp1_x64_dvd_u_677653.iso" ;;
-        "fi" | "fi-"* ) url="fi_windows_7_enterprise_with_sp1_x64_dvd_u_677655.iso" ;;
-        "fr" | "fr-"* ) url="fr_windows_7_enterprise_with_sp1_x64_dvd_u_677656.iso" ;;
-        "he" | "he-"* ) url="he_windows_7_enterprise_with_sp1_x64_dvd_u_677657.iso" ;;
-        "hr" | "hr-"* ) url="hr_windows_7_enterprise_with_sp1_x64_dvd_u_677658.iso" ;;
-        "hu" | "hu-"* ) url="hu_windows_7_enterprise_with_sp1_x64_dvd_u_677659.iso" ;;
-        "it" | "it-"* ) url="it_windows_7_enterprise_with_sp1_x64_dvd_u_677660.iso" ;;
-        "ja" | "ja-"* ) url="ja_windows_7_enterprise_with_sp1_x64_dvd_u_677662.iso" ;;
-        "ko" | "ko-"* ) url="ko_windows_7_enterprise_k_with_sp1_x64_dvd_u_677728.iso" ;;
-        "lt" | "lt-"* ) url="lt_windows_7_enterprise_with_sp1_x64_dvd_u_677663.iso" ;;
-        "lv" | "lv-"* ) url="lv_windows_7_enterprise_with_sp1_x64_dvd_u_677664.iso" ;;
-        "nb" | "nb-"* ) url="no_windows_7_enterprise_with_sp1_x64_dvd_u_677665.iso" ;;
-        "nl" | "nl-"* ) url="nl_windows_7_enterprise_with_sp1_x64_dvd_u_677666.iso" ;;
-        "pl" | "pl-"* ) url="pl_windows_7_enterprise_with_sp1_x64_dvd_u_677667.iso" ;;
-        "br" | "pt-br" ) url="pt_windows_7_enterprise_with_sp1_x64_dvd_u_677668.iso" ;;
-        "pt" | "pt-"* ) url="pp_windows_7_enterprise_with_sp1_x64_dvd_u_677669.iso" ;;
-        "ro" | "ro-"* ) url="ro_windows_7_enterprise_with_sp1_x64_dvd_u_677670.iso" ;;
-        "ru" | "ru-"* ) url="ru_windows_7_enterprise_with_sp1_x64_dvd_u_677671.iso" ;;
-        "sk" | "sk-"* ) url="sk_windows_7_enterprise_with_sp1_x64_dvd_u_677673.iso" ;;
-        "sl" | "sl-"* ) url="sl_windows_7_enterprise_with_sp1_x64_dvd_u_677674.iso" ;;
-        "sr" | "sr-"* ) url="sr_windows_7_enterprise_with_sp1_x64_dvd_u_677675.iso" ;;
-        "sv" | "sv-"* ) url="sv_windows_7_enterprise_with_sp1_x64_dvd_u_677676.iso" ;;
-        "th" | "th-"* ) url="th_windows_7_enterprise_with_sp1_x64_dvd_u_677678.iso" ;;
-        "tr" | "tr-"* ) url="tr_windows_7_enterprise_with_sp1_x64_dvd_u_677681.iso" ;;
-        "uk" | "uk-"* ) url="uk_windows_7_enterprise_with_sp1_x64_dvd_u_677683.iso" ;;
-        "zh-hk" ) url="hk_windows_7_enterprise_with_sp1_x64_dvd_u_677687.iso" ;;
-        "zh-tw" ) url="tw_windows_7_enterprise_with_sp1_x64_dvd_u_677689.iso" ;;
-        "zh" | "zh-"* ) url="cn_windows_7_enterprise_with_sp1_x64_dvd_u_677685.iso" ;;
-      esac
-      ;;
-    "win7x64-ultimate" )
-      case "${culture,,}" in
-        "ar" | "ar-"* ) url="ar_windows_7_ultimate_with_sp1_x64_dvd_u_677345.iso" ;;
-        "bg" | "bg-"* ) url="bg_windows_7_ultimate_with_sp1_x64_dvd_u_677363.iso" ;;
-        "cs" | "cs-"* ) url="cs_windows_7_ultimate_with_sp1_x64_dvd_u_677376.iso" ;;
-        "da" | "da-"* ) url="da_windows_7_ultimate_with_sp1_x64_dvd_u_677294.iso" ;;
-        "de" | "de-"* ) url="de_windows_7_ultimate_with_sp1_x64_dvd_u_677306.iso" ;;
-        "el" | "el-"* ) url="el_windows_7_ultimate_with_sp1_x64_dvd_u_677318.iso" ;;
-        "en" | "en-"* )
-          size=3320903680
-          sum="36f4fa2416d0982697ab106e3a72d2e120dbcdb6cc54fd3906d06120d0653808"
-          url="en_windows_7_ultimate_with_sp1_x64_dvd_u_677332.iso" ;;
-        "es" | "es-"* ) url="es_windows_7_ultimate_with_sp1_x64_dvd_u_677350.iso" ;;
-        "et" | "et-"* ) url="et_windows_7_ultimate_with_sp1_x64_dvd_u_677368.iso" ;;
-        "fi" | "fi-"* ) url="fi_windows_7_ultimate_with_sp1_x64_dvd_u_677378.iso" ;;
-        "fr" | "fr-"* ) url="fr_windows_7_ultimate_with_sp1_x64_dvd_u_677299.iso" ;;
-        "he" | "he-"* ) url="he_windows_7_ultimate_with_sp1_x64_dvd_u_677312.iso" ;;
-        "hr" | "hr-"* ) url="hr_windows_7_ultimate_with_sp1_x64_dvd_u_677324.iso" ;;
-        "hu" | "hu-"* ) url="hu_windows_7_ultimate_with_sp1_x64_dvd_u_677338.iso" ;;
-        "it" | "it-"* ) url="it_windows_7_ultimate_with_sp1_x64_dvd_u_677356.iso" ;;
-        "ja" | "ja-"* ) url="ja_windows_7_ultimate_with_sp1_x64_dvd_u_677372.iso" ;;
-        "ko" | "ko-"* ) url="ko_windows_7_ultimate_k_with_sp1_x64_dvd_u_677502.iso" ;;
-        "lt" | "lt-"* ) url="lt_windows_7_ultimate_with_sp1_x64_dvd_u_677379.iso" ;;
-        "lv" | "lv-"* ) url="lv_windows_7_ultimate_with_sp1_x64_dvd_u_677302.iso" ;;
-        "nb" | "nb-"* ) url="no_windows_7_ultimate_with_sp1_x64_dvd_u_677314.iso" ;;
-        "nl" | "nl-"* ) url="nl_windows_7_ultimate_with_sp1_x64_dvd_u_677325.iso" ;;
-        "pl" | "pl-"* ) url="pl_windows_7_ultimate_with_sp1_x64_dvd_u_677341.iso" ;;
-        "br" | "pt-br" ) url="pt_windows_7_ultimate_with_sp1_x64_dvd_u_677358.iso" ;;
-        "pt" | "pt-"* ) url="pp_windows_7_ultimate_with_sp1_x64_dvd_u_677373.iso" ;;
-        "ro" | "ro-"* ) url="ro_windows_7_ultimate_with_sp1_x64_dvd_u_677380.iso" ;;
-        "ru" | "ru-"* ) url="ru_windows_7_ultimate_with_sp1_x64_dvd_u_677391.iso" ;;
-        "sk" | "sk-"* ) url="sk_windows_7_ultimate_with_sp1_x64_dvd_u_677393.iso" ;;
-        "sl" | "sl-"* ) url="sl_windows_7_ultimate_with_sp1_x64_dvd_u_677396.iso" ;;
-        "sr" | "sr-"* ) url="sr_windows_7_ultimate_with_sp1_x64_dvd_u_677398.iso" ;;
-        "sv" | "sv-"* ) url="sv_windows_7_ultimate_with_sp1_x64_dvd_u_677400.iso" ;;
-        "th" | "th-"* ) url="th_windows_7_ultimate_with_sp1_x64_dvd_u_677402.iso" ;;
-        "tr" | "tr-"* ) url="tr_windows_7_ultimate_with_sp1_x64_dvd_u_677404.iso" ;;
-        "uk" | "uk-"* ) url="uk_windows_7_ultimate_with_sp1_x64_dvd_u_677406.iso" ;;
-        "zh-hk" ) url="hk_windows_7_ultimate_with_sp1_x64_dvd_u_677411.iso" ;;
-        "zh-tw" ) url="tw_windows_7_ultimate_with_sp1_x64_dvd_u_677414.iso" ;;
-        "zh" | "zh-"* ) url="cn_windows_7_ultimate_with_sp1_x64_dvd_u_677408.iso" ;;
-      esac
-      ;;
-    "win7x86" | "win7x86-enterprise" )
-      case "${culture,,}" in
-        "ar" | "ar-"* ) url="ar_windows_7_enterprise_with_sp1_x86_dvd_u_677691.iso" ;;
-        "bg" | "bg-"* ) url="bg_windows_7_enterprise_with_sp1_x86_dvd_u_677693.iso" ;;
-        "cs" | "cs-"* ) url="cs_windows_7_enterprise_with_sp1_x86_dvd_u_677695.iso" ;;
-        "da" | "da-"* ) url="da_windows_7_enterprise_with_sp1_x86_dvd_u_677698.iso" ;;
-        "de" | "de-"* ) url="de_windows_7_enterprise_with_sp1_x86_dvd_u_677702.iso" ;;
-        "el" | "el-"* ) url="el_windows_7_enterprise_with_sp1_x86_dvd_u_677706.iso" ;;
-        "en" | "en-"* )
-          size=2434502656
-          sum="8bdd46ff8cb8b8de9c4aba02706629c8983c45e87da110e64e13be17c8434dad"
-          url="en_windows_7_enterprise_with_sp1_x86_dvd_u_677710.iso" ;;
-        "es" | "es-"* ) url="es_windows_7_enterprise_with_sp1_x86_dvd_u_677714.iso" ;;
-        "et" | "et-"* ) url="et_windows_7_enterprise_with_sp1_x86_dvd_u_677718.iso" ;;
-        "fi" | "fi-"* ) url="fi_windows_7_enterprise_with_sp1_x86_dvd_u_677722.iso" ;;
-        "fr" | "fr-"* ) url="fr_windows_7_enterprise_with_sp1_x86_dvd_u_677727.iso" ;;
-        "he" | "he-"* ) url="he_windows_7_enterprise_with_sp1_x86_dvd_u_677733.iso" ;;
-        "hr" | "hr-"* ) url="hr_windows_7_enterprise_with_sp1_x86_dvd_u_677739.iso" ;;
-        "hu" | "hu-"* ) url="hu_windows_7_enterprise_with_sp1_x86_dvd_u_677744.iso" ;;
-        "it" | "it-"* ) url="it_windows_7_enterprise_with_sp1_x86_dvd_u_677749.iso" ;;
-        "ja" | "ja-"* ) url="ja_windows_7_enterprise_with_sp1_x86_dvd_u_677757.iso" ;;
-        "ko" | "ko-"* ) url="ko_windows_7_enterprise_k_with_sp1_x86_dvd_u_677732.iso" ;;
-        "lt" | "lt-"* ) url="lt_windows_7_enterprise_with_sp1_x86_dvd_u_677764.iso" ;;
-        "lv" | "lv-"* ) url="lv_windows_7_enterprise_with_sp1_x86_dvd_u_677677.iso" ;;
-        "nb" | "nb-"* ) url="no_windows_7_enterprise_with_sp1_x86_dvd_u_677679.iso" ;;
-        "nl" | "nl-"* ) url="nl_windows_7_enterprise_with_sp1_x86_dvd_u_677682.iso" ;;
-        "pl" | "pl-"* ) url="pl_windows_7_enterprise_with_sp1_x86_dvd_u_677684.iso" ;;
-        "br" | "pt-br" ) url="pt_windows_7_enterprise_with_sp1_x86_dvd_u_677686.iso" ;;
-        "pt" | "pt-"* ) url="pp_windows_7_enterprise_with_sp1_x86_dvd_u_677688.iso" ;;
-        "ro" | "ro-"* ) url="ro_windows_7_enterprise_with_sp1_x86_dvd_u_677690.iso" ;;
-        "ru" | "ru-"* ) url="ru_windows_7_enterprise_with_sp1_x86_dvd_u_677692.iso" ;;
-        "sk" | "sk-"* ) url="sk_windows_7_enterprise_with_sp1_x86_dvd_u_677694.iso" ;;
-        "sl" | "sl-"* ) url="sl_windows_7_enterprise_with_sp1_x86_dvd_u_677696.iso" ;;
-        "sr" | "sr-"* ) url="sr_windows_7_enterprise_with_sp1_x86_dvd_u_677699.iso" ;;
-        "sv" | "sv-"* ) url="sv_windows_7_enterprise_with_sp1_x86_dvd_u_677701.iso" ;;
-        "th" | "th-"* ) url="th_windows_7_enterprise_with_sp1_x86_dvd_u_677705.iso" ;;
-        "tr" | "tr-"* ) url="tr_windows_7_enterprise_with_sp1_x86_dvd_u_677708.iso" ;;
-        "uk" | "uk-"* ) url="uk_windows_7_enterprise_with_sp1_x86_dvd_u_677712.iso" ;;
-        "zh-hk" ) url="hk_windows_7_enterprise_with_sp1_x86_dvd_u_677720.iso" ;;
-        "zh-tw" ) url="tw_windows_7_enterprise_with_sp1_x86_dvd_u_677723.iso" ;;
-        "zh" | "zh-"* ) url="cn_windows_7_enterprise_with_sp1_x86_dvd_u_677716.iso" ;;
-      esac
-      ;;
-    "win7x86-ultimate" )
-      case "${culture,,}" in
-        "ar" | "ar-"* ) url="ar_windows_7_ultimate_with_sp1_x86_dvd_u_677448.iso" ;;
-        "bg" | "bg-"* ) url="bg_windows_7_ultimate_with_sp1_x86_dvd_u_677450.iso" ;;
-        "cs" | "cs-"* ) url="cs_windows_7_ultimate_with_sp1_x86_dvd_u_677452.iso" ;;
-        "da" | "da-"* ) url="da_windows_7_ultimate_with_sp1_x86_dvd_u_677454.iso" ;;
-        "de" | "de-"* ) url="de_windows_7_ultimate_with_sp1_x86_dvd_u_677456.iso" ;;
-        "el" | "el-"* ) url="el_windows_7_ultimate_with_sp1_x86_dvd_u_677458.iso" ;;
-        "en" | "en-"* )
-          size=2564476928
-          sum="e2c009a66d63a742941f5087acae1aa438dcbe87010bddd53884b1af6b22c940"
-          url="en_windows_7_ultimate_with_sp1_x86_dvd_u_677460.iso" ;;
-        "es" | "es-"* ) url="es_windows_7_ultimate_with_sp1_x86_dvd_u_677462.iso" ;;
-        "et" | "et-"* ) url="et_windows_7_ultimate_with_sp1_x86_dvd_u_677464.iso" ;;
-        "fi" | "fi-"* ) url="fi_windows_7_ultimate_with_sp1_x86_dvd_u_677466.iso" ;;
-        "fr" | "fr-"* ) url="fr_windows_7_ultimate_with_sp1_x86_dvd_u_677434.iso" ;;
-        "he" | "he-"* ) url="he_windows_7_ultimate_with_sp1_x86_dvd_u_677436.iso" ;;
-        "hr" | "hr-"* ) url="hr_windows_7_ultimate_with_sp1_x86_dvd_u_677438.iso" ;;
-        "hu" | "hu-"* ) url="hu_windows_7_ultimate_with_sp1_x86_dvd_u_677441.iso" ;;
-        "it" | "it-"* ) url="it_windows_7_ultimate_with_sp1_x86_dvd_u_677443.iso" ;;
-        "ja" | "ja-"* ) url="ja_windows_7_ultimate_with_sp1_x86_dvd_u_677445.iso" ;;
-        "ko" | "ko-"* ) url="ko_windows_7_ultimate_k_with_sp1_x86_dvd_u_677508.iso" ;;
-        "lt" | "lt-"* ) url="lt_windows_7_ultimate_with_sp1_x86_dvd_u_677447.iso" ;;
-        "lv" | "lv-"* ) url="lv_windows_7_ultimate_with_sp1_x86_dvd_u_677449.iso" ;;
-        "nb" | "nb-"* ) url="no_windows_7_ultimate_with_sp1_x86_dvd_u_677451.iso" ;;
-        "nl" | "nl-"* ) url="nl_windows_7_ultimate_with_sp1_x86_dvd_u_677453.iso" ;;
-        "pl" | "pl-"* ) url="pl_windows_7_ultimate_with_sp1_x86_dvd_u_677455.iso" ;;
-        "br" | "pt-br" ) url="pt_windows_7_ultimate_with_sp1_x86_dvd_u_677457.iso" ;;
-        "pt" | "pt-"* ) url="pp_windows_7_ultimate_with_sp1_x86_dvd_u_677459.iso" ;;
-        "ro" | "ro-"* ) url="ro_windows_7_ultimate_with_sp1_x86_dvd_u_677461.iso" ;;
-        "ru" | "ru-"* ) url="ru_windows_7_ultimate_with_sp1_x86_dvd_u_677463.iso" ;;
-        "sk" | "sk-"* ) url="sk_windows_7_ultimate_with_sp1_x86_dvd_u_677465.iso" ;;
-        "sl" | "sl-"* ) url="sl_windows_7_ultimate_with_sp1_x86_dvd_u_677467.iso" ;;
-        "sr" | "sr-"* ) url="sr_windows_7_ultimate_with_sp1_x86_dvd_u_677468.iso" ;;
-        "sv" | "sv-"* ) url="sv_windows_7_ultimate_with_sp1_x86_dvd_u_677482.iso" ;;
-        "th" | "th-"* ) url="th_windows_7_ultimate_with_sp1_x86_dvd_u_677483.iso" ;;
-        "tr" | "tr-"* ) url="tr_windows_7_ultimate_with_sp1_x86_dvd_u_677484.iso" ;;
-        "uk" | "uk-"* ) url="uk_windows_7_ultimate_with_sp1_x86_dvd_u_677485.iso" ;;
-        "zh-hk" ) url="hk_windows_7_ultimate_with_sp1_x86_dvd_u_677487.iso" ;;
-        "zh-tw" ) url="tw_windows_7_ultimate_with_sp1_x86_dvd_u_677488.iso" ;;
-        "zh" | "zh-"* ) url="cn_windows_7_ultimate_with_sp1_x86_dvd_u_677486.iso" ;;
-      esac
-      ;;
-    "winvistax64" | "winvistax64-enterprise" )
-      case "${culture,,}" in
-        "ar" | "ar-"* ) url="ar_windows_vista_enterprise_with_sp2_x64_dvd_x15-40408.iso" ;;
-        "bg" | "bg-"* ) url="bg_windows_vista_enterprise_with_sp2_x64_dvd_x15-40410.iso" ;;
-        "cs" | "cs-"* ) url="cs_windows_vista_enterprise_with_sp2_x64_dvd_x15-40412.iso" ;;
-        "da" | "da-"* ) url="da_windows_vista_enterprise_with_sp2_x64_dvd_x15-40416.iso" ;;
-        "de" | "de-"* ) url="de_windows_vista_enterprise_sp2_x64_dvd_342376.iso" ;;
-        "el" | "el-"* ) url="el_windows_vista_enterprise_with_sp2_x64_dvd_x15-40423.iso" ;;
-        "en" | "en-"* )
-          size=3205953536
-          sum="0a0cd511b3eac95c6f081419c9c65b12317b9d6a8d9707f89d646c910e788016"
-          url="en_windows_vista_enterprise_sp2_x64_dvd_342332.iso" ;;
-        "es" | "es-"* ) url="es_windows_vista_enterprise_sp2_x64_dvd_342415.iso" ;;
-        "et" | "et-"* ) url="et_windows_vista_enterprise_with_sp2_x64_dvd_x15-40437.iso" ;;
-        "fi" | "fi-"* ) url="fi_windows_vista_enterprise_with_sp2_x64_dvd_x15-40451.iso" ;;
-        "fr" | "fr-"* ) url="fr_windows_vista_enterprise_sp2_x64_dvd_342355.iso" ;;
-        "he" | "he-"* ) url="he_windows_vista_enterprise_with_sp2_x64_dvd_x15-40425.iso" ;;
-        "hr" | "hr-"* ) url="hr_windows_vista_enterprise_with_sp2_x64_dvd_x15-40396.iso" ;;
-        "hu" | "hu-"* ) url="hu_windows_vista_enterprise_with_sp2_x64_dvd_x15-40427.iso" ;;
-        "it" | "it-"* ) url="it_windows_vista_enterprise_with_sp2_x64_dvd_x15-40429.iso" ;;
-        "ja" | "ja-"* ) url="ja_windows_vista_enterprise_sp2_x64_dvd_342393.iso" ;;
-        "ko" | "ko-"* ) url="ko_windows_vista_enterprise_k_with_sp2_x64_dvd_x15-40433.iso" ;;
-        "lt" | "lt-"* ) url="lt_windows_vista_enterprise_with_sp2_x64_dvd_x15-40394.iso" ;;
-        "lv" | "lv-"* ) url="lv_windows_vista_enterprise_with_sp2_x64_dvd_x15-40392.iso" ;;
-        "nb" | "nb-"* ) url="no_windows_vista_enterprise_with_sp2_x64_dvd_x15-40439.iso" ;;
-        "nl" | "nl-"* ) url="nl_windows_vista_enterprise_with_sp2_x64_dvd_x15-40441.iso" ;;
-        "pl" | "pl-"* ) url="pl_windows_vista_enterprise_with_sp2_x64_dvd_x15-40445.iso" ;;
-        "br" | "pt-br" ) url="pt_windows_vista_enterprise_with_sp2_x64_dvd_x15-40400.iso" ;;
-        "pt" | "pt-"* ) url="pp_windows_vista_enterprise_with_sp2_x64_dvd_x15-40443.iso" ;;
-        "ro" | "ro-"* ) url="ro_windows_vista_enterprise_with_sp2_x64_dvd_x15-40447.iso" ;;
-        "ru" | "ru-"* ) url="ru_windows_vista_enterprise_with_sp2_x64_dvd_x15-40455.iso" ;;
-        "sk" | "sk-"* ) url="sk_windows_vista_enterprise_with_sp2_x64_dvd_x15-40453.iso" ;;
-        "sl" | "sl-"* ) url="sl_windows_vista_enterprise_with_sp2_x64_dvd_x15-40435.iso" ;;
-        "sr" | "sr-"* ) url="sr_windows_vista_enterprise_with_sp2_x64_dvd_x15-40406.iso" ;;
-        "sv" | "sv-"* ) url="sv_windows_vista_enterprise_with_sp2_x64_dvd_x15-40449.iso" ;;
-        "th" | "th-"* ) url="th_windows_vista_enterprise_with_sp2_x64_dvd_x15-40457.iso" ;;
-        "tr" | "tr-"* ) url="tr_windows_vista_enterprise_with_sp2_x64_dvd_x15-40459.iso" ;;
-        "uk" | "uk-"* ) url="uk_windows_vista_enterprise_with_sp2_x64_dvd_x15-40398.iso" ;;
-        "zh-hk" ) url="hk_windows_vista_enterprise_with_sp2_x64_dvd_x15-40463.iso" ;;
-        "zh-tw" ) url="tw_windows_vista_enterprise_with_sp2_x64_dvd_x15-40461.iso" ;;
-        "zh" | "zh-"* ) url="cn_windows_vista_enterprise_with_sp2_x64_dvd_x15-40402.iso" ;;
-      esac
-      ;;
-    "winvistax64-ultimate" )
-      case "${culture,,}" in
-        "ar" | "ar-"* ) url="ar_windows_vista_with_sp2_x64_dvd_x15-36318.iso" ;;
-        "bg" | "bg-"* ) url="bg_windows_vista_with_sp2_x64_dvd_x15-36321.iso" ;;
-        "cs" | "cs-"* ) url="cs_windows_vista_with_sp2_x64_dvd_x15-36327.iso" ;;
-        "da" | "da-"* ) url="da_windows_vista_with_sp2_x64_dvd_x15-36329.iso" ;;
-        "de" | "de-"* ) url="de_windows_vista_sp2_x64_dvd_342287.iso" ;;
-        "el" | "el-"* ) url="el_windows_vista_with_sp2_x64_dvd_x15-36343.iso" ;;
-        "en" | "en-"* )
-          size=3861460992
-          sum="edf9f947c5791469fd7d2d40a5dcce663efa754f91847aa1d28ed7f585675b78"
-          url="en_windows_vista_sp2_x64_dvd_342267.iso" ;;
-        "es" | "es-"* ) url="es_windows_vista_sp2_x64_dvd_342309.iso" ;;
-        "et" | "et-"* ) url="et_windows_vista_with_sp2_x64_dvd_x15-36335.iso" ;;
-        "fi" | "fi-"* ) url="fi_windows_vista_with_sp2_x64_dvd_x15-36337.iso" ;;
-        "fr" | "fr-"* ) url="fr_windows_vista_sp2_x64_dvd_342277.iso" ;;
-        "he" | "he-"* ) url="he_windows_vista_with_sp2_x64_dvd_x15-36344.iso" ;;
-        "hr" | "hr-"* ) url="hr_windows_vista_with_sp2_x64_dvd_x15-36325.iso" ;;
-        "hu" | "hu-"* ) url="hu_windows_vista_with_sp2_x64_dvd_x15-36346.iso" ;;
-        "it" | "it-"* ) url="it_windows_vista_with_sp2_x64_dvd_x15-36348.iso" ;;
-        "ja" | "ja-"* ) url="ja_windows_vista_sp2_x64_dvd_342298.iso" ;;
-        "ko" | "ko-"* ) url="ko_windows_vista_k_and_kn_with_sp2_x86_dvd_x15-36302.iso" ;;
-        "lt" | "lt-"* ) url="lt_windows_vista_with_sp2_x64_dvd_x15-36355.iso" ;;
-        "lv" | "lv-"* ) url="lv_windows_vista_with_sp2_x64_dvd_x15-36353.iso" ;;
-        "nb" | "nb-"* ) url="no_windows_vista_with_sp2_x64_dvd_x15-36357.iso" ;;
-        "nl" | "nl-"* ) url="nl_windows_vista_with_sp2_x64_dvd_x15-36331.iso" ;;
-        "pl" | "pl-"* ) url="pl_windows_vista_with_sp2_x64_dvd_x15-36359.iso" ;;
-        "br" | "pt-br" ) url="pt_windows_vista_with_sp2_x64_dvd_x15-36319.iso" ;;
-        "pt" | "pt-"* ) url="pp_windows_vista_with_sp2_x64_dvd_x15-36361.iso" ;;
-        "ro" | "ro-"* ) url="ro_windows_vista_with_sp2_x64_dvd_x15-36363.iso" ;;
-        "ru" | "ru-"* ) url="ru_windows_vista_with_sp2_x64_dvd_x15-36364.iso" ;;
-        "sk" | "sk-"* ) url="sk_windows_vista_with_sp2_x64_dvd_x15-36367.iso" ;;
-        "sl" | "sl-"* ) url="sl_windows_vista_with_sp2_x64_dvd_x15-36369.iso" ;;
-        "sr" | "sr-"* ) url="sr_windows_vista_with_sp2_x64_dvd_x15-36365.iso" ;;
-        "sv" | "sv-"* ) url="sv_windows_vista_with_sp2_x64_dvd_x15-36373.iso" ;;
-        "th" | "th-"* ) url="th_windows_vista_with_sp2_x64_dvd_x15-36374.iso" ;;
-        "tr" | "tr-"* ) url="tr_windows_vista_with_sp2_x64_dvd_x15-36375.iso" ;;
-        "uk" | "uk-"* ) url="uk_windows_vista_with_sp2_x64_dvd_x15-36376.iso" ;;
-        "zh-hk" ) url="hk_windows_vista_with_sp2_x64_dvd_x15-36324.iso" ;;
-        "zh-tw" ) url="tw_windows_vista_with_sp2_x64_dvd_x15-36323.iso" ;;
-        "zh" | "zh-"* ) url="cn_windows_vista_with_sp2_x64_dvd_x15-36322.iso" ;;
-      esac
-      ;;
-    "winvistax86" | "winvistax86-enterprise" )
-      case "${culture,,}" in
-        "ar" | "ar-"* ) url="ar_windows_vista_enterprise_with_sp2_x86_dvd_x15-40263.iso" ;;
-        "bg" | "bg-"* ) url="bg_windows_vista_enterprise_with_sp2_x86_dvd_x15-40265.iso" ;;
-        "cs" | "cs-"* ) url="cs_windows_vista_enterprise_with_sp2_x86_dvd_x15-40267.iso" ;;
-        "da" | "da-"* ) url="da_windows_vista_enterprise_with_sp2_x86_dvd_x15-40271.iso" ;;
-        "de" | "de-"* ) url="de_windows_vista_enterprise_sp2_x86_dvd_342373.iso" ;;
-        "el" | "el-"* ) url="el_windows_vista_enterprise_with_sp2_x86_dvd_x15-40277.iso" ;;
-        "en" | "en-"* )
-          size=2420981760
-          sum="54e2720004041e7db988a391543ea5228b0affc28efcf9303d2d0ff9402067f5"
-          url="en_windows_vista_enterprise_sp2_x86_dvd_342329.iso" ;;
-        "es" | "es-"* ) url="es_windows_vista_enterprise_sp2_x86_dvd_342413.iso" ;;
-        "et" | "et-"* ) url="et_windows_vista_enterprise_with_sp2_x86_dvd_x15-40291.iso" ;;
-        "fi" | "fi-"* ) url="fi_windows_vista_enterprise_with_sp2_x86_dvd_x15-40305.iso" ;;
-        "fr" | "fr-"* ) url="fr_windows_vista_enterprise_sp2_x86_dvd_342352.iso" ;;
-        "he" | "he-"* ) url="he_windows_vista_enterprise_with_sp2_x86_dvd_x15-40279.iso" ;;
-        "hr" | "hr-"* ) url="hr_windows_vista_enterprise_with_sp2_x86_dvd_x15-40251.iso" ;;
-        "hu" | "hu-"* ) url="hu_windows_vista_enterprise_with_sp2_x86_dvd_x15-40281.iso" ;;
-        "it" | "it-"* ) url="it_windows_vista_enterprise_with_sp2_x86_dvd_x15-40283.iso" ;;
-        "ja" | "ja-"* ) url="ja_windows_vista_enterprise_sp2_x86_dvd_342391.iso" ;;
-        "ko" | "ko-"* ) url="ko_windows_vista_enterprise_k_with_sp2_x86_dvd_x15-40287.iso" ;;
-        "lt" | "lt-"* ) url="lt_windows_vista_enterprise_with_sp2_x86_dvd_x15-40249.iso" ;;
-        "lv" | "lv-"* ) url="lv_windows_vista_enterprise_with_sp2_x86_dvd_x15-40247.iso" ;;
-        "nb" | "nb-"* ) url="no_windows_vista_enterprise_with_sp2_x86_dvd_x15-40293.iso" ;;
-        "nl" | "nl-"* ) url="nl_windows_vista_enterprise_with_sp2_x86_dvd_x15-40295.iso" ;;
-        "pl" | "pl-"* ) url="pl_windows_vista_enterprise_with_sp2_x86_dvd_x15-40299.iso" ;;
-        "br" | "pt-br" ) url="pt_windows_vista_enterprise_with_sp2_x86_dvd_x15-40255.iso" ;;
-        "pt" | "pt-"* ) url="pp_windows_vista_enterprise_with_sp2_x86_dvd_x15-40297.iso" ;;
-        "ro" | "ro-"* ) url="ro_windows_vista_enterprise_with_sp2_x86_dvd_x15-40301.iso" ;;
-        "ru" | "ru-"* ) url="ru_windows_vista_enterprise_with_sp2_x86_dvd_x15-40309.iso" ;;
-        "sk" | "sk-"* ) url="sk_windows_vista_enterprise_with_sp2_x86_dvd_x15-40307.iso" ;;
-        "sl" | "sl-"* ) url="sl_windows_vista_enterprise_with_sp2_x86_dvd_x15-40289.iso" ;;
-        "sr" | "sr-"* ) url="sr_windows_vista_enterprise_with_sp2_x86_dvd_x15-40261.iso" ;;
-        "sv" | "sv-"* ) url="sv_windows_vista_enterprise_with_sp2_x86_dvd_x15-40303.iso" ;;
-        "th" | "th-"* ) url="th_windows_vista_enterprise_with_sp2_x86_dvd_x15-40311.iso" ;;
-        "tr" | "tr-"* ) url="tr_windows_vista_enterprise_with_sp2_x86_dvd_x15-40313.iso" ;;
-        "uk" | "uk-"* ) url="uk_windows_vista_enterprise_with_sp2_x86_dvd_x15-40253.iso" ;;
-        "zh-hk" ) url="hk_windows_vista_enterprise_with_sp2_x86_dvd_x15-40317.iso" ;;
-        "zh-tw" ) url="tw_windows_vista_enterprise_with_sp2_x86_dvd_x15-40315.iso" ;;
-        "zh" | "zh-"* ) url="cn_windows_vista_enterprise_with_sp2_x86_dvd_x15-40257.iso" ;;
-      esac
-      ;;
-    "winvistax86-ultimate" )
-      case "${culture,,}" in
-        "ar" | "ar-"* ) url="ar_windows_vista_with_sp2_x86_dvd_x15-36282.iso" ;;
-        "bg" | "bg-"* ) url="bg_windows_vista_with_sp2_x86_dvd_x15-36284.iso" ;;
-        "hr" | "hr-"* ) url="hr_windows_vista_with_sp2_x86_dvd_x15-36288.iso" ;;
-        "cs" | "cs-"* ) url="cs_windows_vista_with_sp2_x86_dvd_x15-36289.iso" ;;
-        "da" | "da-"* ) url="da_windows_vista_with_sp2_x86_dvd_x15-36290.iso" ;;
-        "de" | "de-"* ) url="de_windows_vista_sp2_x86_dvd_342286.iso" ;;
-        "el" | "el-"* ) url="el_windows_vista_with_sp2_x86_dvd_x15-36297.iso" ;;
-        "en" | "en-"* )
-          size=3243413504
-          sum="9c36fed4255bd05a8506b2da88f9aad73643395e155e609398aacd2b5276289c"
-          url="en_windows_vista_with_sp2_x86_dvd_342266.iso" ;;
-        "es" | "es-"* ) url="es_windows_vista_sp2_x86_dvd_342308.iso" ;;
-        "et" | "et-"* ) url="et_windows_vista_with_sp2_x86_dvd_x15-36293.iso" ;;
-        "fi" | "fi-"* ) url="fi_windows_vista_with_sp2_x86_dvd_x15-36294.iso" ;;
-        "fr" | "fr-"* ) url="fr_windows_vista_sp2_x86_dvd_342276.iso" ;;
-        "he" | "he-"* ) url="he_windows_vista_with_sp2_x86_dvd_x15-36298.iso" ;;
-        "hu" | "hu-"* ) url="hu_windows_vista_with_sp2_x86_dvd_x15-36299.iso" ;;
-        "it" | "it-"* ) url="it_windows_vista_with_sp2_x86_dvd_x15-36300.iso" ;;
-        "ja" | "ja-"* ) url="ja_windows_vista_sp2_x86_dvd_342296.iso" ;;
-        "ko" | "ko-"* ) url="ko_windows_vista_k_with_sp2_x64_dvd_x15-36350.iso" ;;
-        "lt" | "lt-"* ) url="lt_windows_vista_with_sp2_x86_dvd_x15-36304.iso" ;;
-        "lv" | "lv-"* ) url="lv_windows_vista_with_sp2_x86_dvd_x15-36303.iso" ;;
-        "nb" | "nb-"* ) url="no_windows_vista_with_sp2_x86_dvd_x15-36305.iso" ;;
-        "nl" | "nl-"* ) url="nl_windows_vista_with_sp2_x86_dvd_x15-36291.iso" ;;
-        "pl" | "pl-"* ) url="pl_windows_vista_with_sp2_x86_dvd_x15-36306.iso" ;;
-        "br" | "pt-br" ) url="pt_windows_vista_with_sp2_x86_dvd_x15-36283.iso" ;;
-        "pt" | "pt-"* ) url="pp_windows_vista_with_sp2_x86_dvd_x15-36307.iso" ;;
-        "ro" | "ro-"* ) url="ro_windows_vista_with_sp2_x86_dvd_x15-36308.iso" ;;
-        "ru" | "ru-"* ) url="ru_windows_vista_with_sp2_x86_dvd_x15-36309.iso" ;;
-        "sk" | "sk-"* ) url="sk_windows_vista_with_sp2_x86_dvd_x15-36311.iso" ;;
-        "sl" | "sl-"* ) url="sl_windows_vista_with_sp2_x86_dvd_x15-36312.iso" ;;
-        "sr" | "sr-"* ) url="sr_windows_vista_with_sp2_x86_dvd_x15-36310.iso" ;;
-        "sv" | "sv-"* ) url="sv_windows_vista_with_sp2_x86_dvd_x15-36314.iso" ;;
-        "th" | "th-"* ) url="th_windows_vista_with_sp2_x86_dvd_x15-36315.iso" ;;
-        "tr" | "tr-"* ) url="tr_windows_vista_with_sp2_x86_dvd_x15-36316.iso" ;;
-        "uk" | "uk-"* ) url="uk_windows_vista_with_sp2_x86_dvd_x15-36317.iso" ;;
-        "zh-hk" ) url="hk_windows_vista_with_sp2_x86_dvd_x15-36287.iso" ;;
-        "zh-tw" ) url="tw_windows_vista_with_sp2_x86_dvd_x15-36286.iso" ;;
-        "zh" | "zh-"* ) url="cn_windows_vista_with_sp2_x86_dvd_x15-36285.iso" ;;
-      esac
+    "win7x86" | "win7x86-ultimate" )
+      size=2564784128
+      sum="bd4c03c917d00a40222d92a6fab04981a7bd46140bda1888eb961a322e3c5d89"
+      url="WINDOWS732_EN_DVD.iso"
       ;;
     "winxpx86" )
-      case "${culture,,}" in
-        "ar" | "ar-"* ) url="ar_windows_xp_professional_with_service_pack_3_x86_cd_vl_x14-74065.iso" ;;
-        "cs" | "cs-"* ) url="cs_windows_xp_professional_with_service_pack_3_x86_cd_vl_x14-73965.iso" ;;
-        "da" | "da-"* ) url="da_windows_xp_professional_with_service_pack_3_x86_cd_vl_x14-73968.iso" ;;
-        "de" | "de-"* ) url="de_windows_xp_professional_with_service_pack_3_x86_cd_vl_x14-73985.iso" ;;
-        "el" | "el-"* ) url="el_windows_xp_professional_with_service_pack_3_x86_cd_vl_x14-73988.iso" ;;
-        "es" | "es-"* ) url="es_windows_xp_professional_with_service_pack_3_x86_cd_vl_x14-74009.iso" ;;
-        "fi" | "fi-"* ) url="fi_windows_xp_professional_with_service_pack_3_x86_cd_vl_x14-73979.iso" ;;
-        "fr" | "fr-"* ) url="fr_windows_xp_professional_with_service_pack_3_x86_cd_vl_x14-73982.iso" ;;
-        "he" | "he-"* ) url="he_windows_xp_professional_with_service_pack_3_x86_cd_vl_x14-74143.iso" ;;
-        "hu" | "hu-"* ) url="hu_windows_xp_professional_with_service_pack_3_x86_cd_vl_x14-73991.iso" ;;
-        "it" | "it-"* ) url="it_windows_xp_professional_with_service_pack_3_x86_cd_vl_x14-73994.iso" ;;
-        "ja" | "ja-"* ) url="ja_windows_xp_professional_with_service_pack_3_x86_dvd_vl_x14-74058.iso" ;;
-        "nb" | "nb-"* ) url="no_windows_xp_professional_with_service_pack_3_x86_cd_vl_x14-74000.iso" ;;
-        "nl" | "nl-"* ) url="nl_windows_xp_professional_with_service_pack_3_x86_cd_vl_x14-73971.iso" ;;
-        "pl" | "pl-"* ) url="pl_windows_xp_professional_with_service_pack_3_x86_cd_vl_x14-74003.iso" ;;
-        "br" | "pt-br" ) url="pt-br_windows_xp_professional_with_service_pack_3_x86_cd_vl_x14-74137.iso" ;;
-        "pt" | "pt-"* ) url="pt-pt_windows_xp_professional_with_service_pack_3_x86_cd_vl_x14-74006.iso" ;;
-        "ru" | "ru-"* ) url="ru_windows_xp_professional_with_service_pack_3_x86_cd_vl_x14-74146.iso" ;;
-        "sv" | "sv-"* ) url="sv_windows_xp_professional_with_service_pack_3_x86_cd_vl_x14-74012.iso" ;;
-        "tr" | "tr-"* ) url="tr_windows_xp_professional_with_service_pack_3_x86_cd_vl_x14-74085.iso" ;;
-        "zh-hk" ) url="zh-hk_windows_xp_professional_with_service_pack_3_x86_cd_vl_x14-74075.iso" ;;
-        "zh-tw" ) url="zh-tw_windows_xp_professional_with_service_pack_3_x86_cd_vl_x14-74140.iso" ;;
-        "zh" | "zh-"* ) url="zh-hans_windows_xp_professional_with_service_pack_3_x86_cd_vl_x14-74070.iso" ;;
-      esac
+      size=618065920
+      sum="8177d0137dfe4e8296a85793f140806c9250a5992c8e0e50158c742767ad1182"
+      url="WinXPsp3.iso"
       ;;
-    "winxpx64" )
-      [[ "${lang,,}" != "en" ]] && [[ "${lang,,}" != "en-us" ]] && return 0
-      size=628168704
-      sum="b641514c2265ba6c0a9ddbcfa4a6daaac6539db8d1ce704366cdfe5a516e0495"
-      url="en_win_xp_pro_x64_with_sp2_vl_x13-41611.iso"
-      ;;
+    "win2kx86" )
+      size=387424256
+      sum="08b11c3897eb38d1e6566a17cec5cdf2b3c620444e160e3db200a7e223aabbd8"
+      url="Windows_2000_SP4.iso"
   esac
 
   case "${ret,,}" in
@@ -1534,11 +1124,135 @@ getLink4() {
       sum="a11116c0645d892d6a5a7c585ecc1fa13aa66f8c7cc6b03bf1f27bd16860cc35"
       url="tiny-10-23-h2/tiny10%20x64%2023h2.iso"
       ;;
+    "win11x64" )
+      size=5819484160
+      sum="b56b911bf18a2ceaeb3904d87e7c770bdf92d3099599d61ac2497b91bf190b11"
+      url="windows-11-24h2-x64/Windows%2011%2024H2%20x64.iso"
+      ;;
+    "win11x64-enterprise" | "win11x64-enterprise-eval" )
+      size=6209064960
+      sum="c8dbc96b61d04c8b01faf6ce0794fdf33965c7b350eaa3eb1e6697019902945c"
+      url="Windows11Enterprise23H2x64/22631.2428.231001-0608.23H2_NI_RELEASE_SVC_REFRESH_CLIENTENTERPRISEEVAL_OEMRET_x64FRE_en-us.iso"
+      ;;
+    "win11x64-iot" | "win11x64-enterprise-iot-eval" )
+      size=5144817664
+      sum="4f59662a96fc1da48c1b415d6c369d08af55ddd64e8f1c84e0166d9e50405d7a"
+      url="Windows11LTSC/X23-81951_26100.1742.240906-0331.ge_release_svc_refresh_CLIENT_ENTERPRISES_OEM_x64FRE_en-us.iso"
+      ;;
+    "win11x64-ltsc" | "win11x64-enterprise-ltsc-eval" )
+      size=5144817664
+      sum="4f59662a96fc1da48c1b415d6c369d08af55ddd64e8f1c84e0166d9e50405d7a"
+      url="Windows11LTSC/X23-81951_26100.1742.240906-0331.ge_release_svc_refresh_CLIENT_ENTERPRISES_OEM_x64FRE_en-us.iso"
+      ;;
+    "win10x64" | "win10x64-enterprise" | "win10x64-enterprise-eval" )
+      size=6978310144
+      sum="7847abd6f39abd02dc8089c4177d354f9eb66fa0ee2fe8ae20e596e675d1ab67"
+      url="Windows-10-22H2-July-2024-64-bit-DVD-English/en-us_windows_10_business_editions_version_22h2_updated_july_2024_x64_dvd_c004521a.iso"
+      ;;
+    "win10x64-iot" | "win10x64-enterprise-iot-eval" )
+      size=4851668992
+      sum="a0334f31ea7a3e6932b9ad7206608248f0bd40698bfb8fc65f14fc5e4976c160"
+      url="en-us_windows_10_iot_enterprise_ltsc_2021_x64_dvd_257ad90f_202411/en-us_windows_10_iot_enterprise_ltsc_2021_x64_dvd_257ad90f.iso"
+      ;;
+    "win10x64-ltsc" | "win10x64-enterprise-ltsc-eval" )
+      size=4899461120
+      sum="c90a6df8997bf49e56b9673982f3e80745058723a707aef8f22998ae6479597d"
+      url="en-us_windows_10_enterprise_ltsc_2021_x64_dvd_d289cf96_202302/en-us_windows_10_enterprise_ltsc_2021_x64_dvd_d289cf96.iso"
+      ;;
+    "win81x64" )
+      size=4320526336
+      sum="d8333cf427eb3318ff6ab755eb1dd9d433f0e2ae43745312c1cd23e83ca1ce51"
+      url="en_windows_8.1_with_update_x64_dvd_6051480/en_windows_8.1_with_update_x64_dvd_6051480.iso"
+      ;;
+    "win81x64-enterprise" | "win81x64-enterprise-eval" )
+      size=4139163648
+      sum="c3c604c03677504e8905090a8ce5bb1dde76b6fd58e10f32e3a25bef21b2abe1"
+      url="en_windows_8.1_enterprise_with_update_x64_dvd/en_windows_8.1_enterprise_with_update_x64_dvd_6054382.iso"
+      ;;
+    "win2022" | "win2022-eval" )
+      size=5365624832
+      sum="c3c57bb2cf723973a7dcfb1a21e97dfa035753a7f111e348ad918bb64b3114db"
+      url="win-server-2022/2227-January_2024/en-us_windows_server_2022_updated_jan_2024_x64_dvd_2b7a0c9f.iso"
+      ;;
+    "win2019" | "win2019-eval" )
+      size=5575774208
+      sum="0067afe7fdc4e61f677bd8c35a209082aa917df9c117527fc4b2b52a447e89bb"
+      url="sw-dvd-9-win-server-std-core-2019-1809.18-64-bit-english-dc-std-mlf-x-22-74330/SW_DVD9_Win_Server_STD_CORE_2019_1809.18_64Bit_English_DC_STD_MLF_X22-74330.ISO"
+      ;;
+    "win2016" | "win2016-eval" )
+      size=6006587392
+      sum="af06e5483c786c023123e325cea4775050324d9e1366f46850b515ae43f764be"
+      url="en_windows_server_2016_updated_feb_2018_x64_dvd_11636692/en_windows_server_2016_updated_feb_2018_x64_dvd_11636692.iso"
+      ;;
+    "win2012r2" | "win2012r2-eval" )
+      size=5397889024
+      sum="f351e89eb88a96af4626ceb3450248b8573e3ed5924a4e19ea891e6003b62e4e"
+      url="en_windows_server_2012_r2_with_update_x64_dvd_6052708_202006/en_windows_server_2012_r2_with_update_x64_dvd_6052708.iso"
+      ;;
+    "win2008r2" | "win2008r2-eval" )
+      size=3166584832
+      sum="dfd9890881b7e832a927c38310fb415b7ea62ac5a896671f2ce2a111998f0df8"
+      url="en_windows_server_2008_r2_with_sp1_x64_dvd_617601_202006/en_windows_server_2008_r2_with_sp1_x64_dvd_617601.iso"
+      ;;
+    "win7x64" | "win7x64-ultimate" )
+      size=3320903680
+      sum="36f4fa2416d0982697ab106e3a72d2e120dbcdb6cc54fd3906d06120d0653808"
+      url="win7-ult-sp1-english/Win7_Ult_SP1_English_x64.iso"
+      ;;
+    "win7x64-enterprise" | "win7x64-enterprise-eval" )
+      size=3182604288
+      sum="ee69f3e9b86ff973f632db8e01700c5724ef78420b175d25bae6ead90f6805a7"
+      url="en_windows_7_enterprise_with_sp1_x64_dvd_u_677651_202006/en_windows_7_enterprise_with_sp1_x64_dvd_u_677651.iso"
+      ;;
+    "win7x86" | "win7x86-ultimate" )
+      size=2564476928
+      sum="e2c009a66d63a742941f5087acae1aa438dcbe87010bddd53884b1af6b22c940"
+      url="win7-ult-sp1-english/Win7_Ult_SP1_English_x32.iso"
+      ;;
+    "win7x86-enterprise" | "win7x86-enterprise-eval" )
+      size=2434502656
+      sum="8bdd46ff8cb8b8de9c4aba02706629c8983c45e87da110e64e13be17c8434dad"
+      url="en_windows_7_enterprise_with_sp1_x86_dvd_u_677710_202006/en_windows_7_enterprise_with_sp1_x86_dvd_u_677710.iso"
+      ;;
+    "winvistax64" | "winvistax64-ultimate" )
+      size=3861460992
+      sum="edf9f947c5791469fd7d2d40a5dcce663efa754f91847aa1d28ed7f585675b78"
+      url="en_windows_vista_sp2_x64_dvd_342267_202010/en_windows_vista_sp2_x64_dvd_342267.iso"
+      ;;
+    "winvistax64-enterprise" )
+      size=3205953536
+      sum="0a0cd511b3eac95c6f081419c9c65b12317b9d6a8d9707f89d646c910e788016"
+      url="en_windows_vista_enterprise_sp2_x64_dvd_342332_202007/en_windows_vista_enterprise_sp2_x64_dvd_342332.iso"
+      ;;
+    "winvistax86" | "winvistax86-ultimate" )
+      size=3243413504
+      sum="9c36fed4255bd05a8506b2da88f9aad73643395e155e609398aacd2b5276289c"
+      url="en_windows_vista_sp2_x86_dvd_342266/en_windows_vista_sp2_x86_dvd_342266.iso"
+      ;;
+    "winvistax86-enterprise" )
+      size=2420981760
+      sum="54e2720004041e7db988a391543ea5228b0affc28efcf9303d2d0ff9402067f5"
+      url="en_windows_vista_enterprise_sp2_x86_dvd_342329_202007/en_windows_vista_enterprise_sp2_x86_dvd_342329.iso"
+      ;;
+    "win2003r2" )
+      size=652367872
+      sum="74245cba888f935b138b106c2744bec7f392925b472358960a0b5643cd6abb32"
+      url="en_win_srv_2003_r2_standard_x64_with_sp2_cd1_x13-05757/en_win_srv_2003_r2_standard_x64_with_sp2_cd1_x13-05757.iso"
+      ;;
     "winxpx86" )
       size=617756672
       sum="62b6c91563bad6cd12a352aa018627c314cfc5162d8e9f8af0756a642e602a46"
       url="XPPRO_SP3_ENU/en_windows_xp_professional_with_service_pack_3_x86_cd_x14-80428.iso"
       ;;
+    "winxpx64" )
+      size=614166528
+      sum="8fac68e1e56c64ad9a2aa0ad464560282e67fa4f4dd51d09a66f4e548eb0f2d6"
+      url="windows-xp-all-sp-msdn-iso-files-en-de-ru-tr-x86-x64/en_win_xp_sp1_pro_x64_vl.iso"
+      ;;
+    "win2kx86" )
+      size=386859008
+      sum="e3816f6e80b66ff686ead03eeafffe9daf020a5e4717b8bd4736b7c51733ba22"
+      url="MicrosoftWindows2000BuildCollection/5.00.2195.6717_x86fre_client-professional_retail_en-us-ZRMPFPP_EN.iso"
   esac
 
   case "${ret,,}" in
@@ -1662,44 +1376,20 @@ addFolder() {
   cp -Lr "$folder/." "$dest" || return 1
 
   local file
-  file=$(find "$dest" -maxdepth 1 -type f -iname install.bat | head -n 1)
+  file=$(find "$dest" -maxdepth 1 -type f -iname install.bat  -print -quit)
   [ -f "$file" ] && unix2dos -q "$file"
-
-  return 0
-}
-
-migrateFiles() {
-
-  local base="$1"
-  local version="$2"
-  local file=""
-
-  [ -f "$base" ] && return 0
-
-  [[ "${version,,}" == "tiny10" ]] && file="tiny10_x64_23h2.iso"
-  [[ "${version,,}" == "tiny11" ]] && file="tiny11_2311_x64.iso"
-  [[ "${version,,}" == "core11" ]] && file="tiny11_core_x64_beta_1.iso"
-  [[ "${version,,}" == "winxpx86" ]] && file="en_windows_xp_professional_with_service_pack_3_x86_cd_x14-80428.iso"
-  [[ "${version,,}" == "winvistax64" ]] && file="en_windows_vista_sp2_x64_dvd_342267.iso"
-  [[ "${version,,}" == "win7x64" ]] && file="en_windows_7_enterprise_with_sp1_x64_dvd_u_677651.iso"
-
-  [ ! -f "$STORAGE/$file" ] && return 0
-  mv -f "$STORAGE/$file" "$base" || return 1
 
   return 0
 }
 
 prepareInstall() {
 
+  local pid=""
+  local file=""
   local dir="$2"
   local desc="$3"
-  local arch="$4"
-  local key="$5"
-  local driver="$6"
+  local driver="$4"
   local drivers="/tmp/drivers"
-
-  rm -rf "$drivers"
-  mkdir -p "$drivers"
 
   ETFS="[BOOT]/Boot-NoEmul.img"
 
@@ -1707,78 +1397,167 @@ prepareInstall() {
     error "Failed to locate file \"$ETFS\" in $desc ISO image!" && return 1
   fi
 
-  local msg="Adding drivers to image..."
-  info "$msg" && html "$msg"
-
-  if ! bsdtar -xf /drivers.txz -C "$drivers"; then
-    error "Failed to extract drivers!" && return 1
-  fi
-
-  local target
+  local arch target
+  [ -d "$dir/AMD64" ] && arch="amd64" || arch="x86"
   [[ "${arch,,}" == "x86" ]] && target="$dir/I386" || target="$dir/AMD64"
 
-  if [ ! -f "$drivers/viostor/$driver/$arch/viostor.sys" ]; then
-    error "Failed to locate required storage drivers!" && return 1
+  if [ ! -d "$target" ]; then
+    error "Failed to locate directory \"$target\" in $desc ISO image!" && return 1
   fi
 
-  cp -L "$drivers/viostor/$driver/$arch/viostor.sys" "$target" || return 1
+  if [[ "${driver,,}" == "xp" ]] || [[ "${driver,,}" == "2k3" ]]; then
 
-  mkdir -p "$dir/\$OEM\$/\$1/Drivers/viostor" || return 1
-  cp -L "$drivers/viostor/$driver/$arch/viostor.cat" "$dir/\$OEM\$/\$1/Drivers/viostor" || return 1
-  cp -L "$drivers/viostor/$driver/$arch/viostor.inf" "$dir/\$OEM\$/\$1/Drivers/viostor" || return 1
-  cp -L "$drivers/viostor/$driver/$arch/viostor.sys" "$dir/\$OEM\$/\$1/Drivers/viostor" || return 1
+    local msg="Adding drivers to image..."
+    info "$msg" && html "$msg"
 
-  if [ ! -f "$drivers/NetKVM/$driver/$arch/netkvm.sys" ]; then
-    error "Failed to locate required network drivers!" && return 1
+    rm -rf "$drivers"
+    mkdir -p "$drivers"
+
+    if ! bsdtar -xf /var/drivers.txz -C "$drivers"; then
+      error "Failed to extract drivers!" && return 1
+    fi
+
+    if [ ! -f "$drivers/viostor/$driver/$arch/viostor.sys" ]; then
+      error "Failed to locate required storage drivers!" && return 1
+    fi
+
+    cp -L "$drivers/viostor/$driver/$arch/viostor.sys" "$target" || return 1
+
+    mkdir -p "$dir/\$OEM\$/\$1/Drivers/viostor" || return 1
+    cp -L "$drivers/viostor/$driver/$arch/viostor.cat" "$dir/\$OEM\$/\$1/Drivers/viostor" || return 1
+    cp -L "$drivers/viostor/$driver/$arch/viostor.inf" "$dir/\$OEM\$/\$1/Drivers/viostor" || return 1
+    cp -L "$drivers/viostor/$driver/$arch/viostor.sys" "$dir/\$OEM\$/\$1/Drivers/viostor" || return 1
+
+    if [ ! -f "$drivers/NetKVM/$driver/$arch/netkvm.sys" ]; then
+      error "Failed to locate required network drivers!" && return 1
+    fi
+
+    mkdir -p "$dir/\$OEM\$/\$1/Drivers/NetKVM" || return 1
+    cp -L "$drivers/NetKVM/$driver/$arch/netkvm.cat" "$dir/\$OEM\$/\$1/Drivers/NetKVM" || return 1
+    cp -L "$drivers/NetKVM/$driver/$arch/netkvm.inf" "$dir/\$OEM\$/\$1/Drivers/NetKVM" || return 1
+    cp -L "$drivers/NetKVM/$driver/$arch/netkvm.sys" "$dir/\$OEM\$/\$1/Drivers/NetKVM" || return 1
+
+    file=$(find "$target" -maxdepth 1 -type f -iname TXTSETUP.SIF -print -quit)
+
+    if [ -z "$file" ]; then
+      error "The file TXTSETUP.SIF could not be found!" && return 1
+    fi
+
+    sed -i '/^\[SCSI.Load\]/s/$/\nviostor=viostor.sys,4/' "$file"
+    sed -i '/^\[SourceDisksFiles.'"$arch"'\]/s/$/\nviostor.sys=1,,,,,,4_,4,1,,,1,4/' "$file"
+    sed -i '/^\[SCSI\]/s/$/\nviostor=\"Red Hat VirtIO SCSI Disk Device\"/' "$file"
+    sed -i '/^\[HardwareIdsDatabase\]/s/$/\nPCI\\VEN_1AF4\&DEV_1001\&SUBSYS_00000000=\"viostor\"/' "$file"
+    sed -i '/^\[HardwareIdsDatabase\]/s/$/\nPCI\\VEN_1AF4\&DEV_1001\&SUBSYS_00020000=\"viostor\"/' "$file"
+    sed -i '/^\[HardwareIdsDatabase\]/s/$/\nPCI\\VEN_1AF4\&DEV_1001\&SUBSYS_00021AF4=\"viostor\"/' "$file"
+    sed -i '/^\[HardwareIdsDatabase\]/s/$/\nPCI\\VEN_1AF4\&DEV_1001\&SUBSYS_00000000=\"viostor\"/' "$file"
+
+    if [ ! -d "$drivers/sata/xp/$arch" ]; then
+      error "Failed to locate required SATA drivers!" && return 1
+    fi
+
+    mkdir -p "$dir/\$OEM\$/\$1/Drivers/sata" || return 1
+    cp -Lr "$drivers/sata/xp/$arch/." "$dir/\$OEM\$/\$1/Drivers/sata" || return 1
+    cp -Lr "$drivers/sata/xp/$arch/." "$target" || return 1
+
+    sed -i '/^\[SCSI.Load\]/s/$/\niaStor=iaStor.sys,4/' "$file"
+    sed -i '/^\[FileFlags\]/s/$/\niaStor.sys = 16/' "$file"
+    sed -i '/^\[SourceDisksFiles.'"$arch"'\]/s/$/\niaStor.cat = 1,,,,,,,1,0,0/' "$file"
+    sed -i '/^\[SourceDisksFiles.'"$arch"'\]/s/$/\niaStor.inf = 1,,,,,,,1,0,0/' "$file"
+    sed -i '/^\[SourceDisksFiles.'"$arch"'\]/s/$/\niaStor.sys = 1,,,,,,4_,4,1,,,1,4/' "$file"
+    sed -i '/^\[SourceDisksFiles.'"$arch"'\]/s/$/\niaStor.sys = 1,,,,,,,1,0,0/' "$file"
+    sed -i '/^\[SourceDisksFiles.'"$arch"'\]/s/$/\niaahci.cat = 1,,,,,,,1,0,0/' "$file"
+    sed -i '/^\[SourceDisksFiles.'"$arch"'\]/s/$/\niaAHCI.inf = 1,,,,,,,1,0,0/' "$file"
+    sed -i '/^\[SCSI\]/s/$/\niaStor=\"Intel\(R\) SATA RAID\/AHCI Controller\"/' "$file"
+    sed -i '/^\[HardwareIdsDatabase\]/s/$/\nPCI\\VEN_8086\&DEV_2922\&CC_0106=\"iaStor\"/' "$file"
+
+    rm -rf "$drivers"
+
   fi
 
-  mkdir -p "$dir/\$OEM\$/\$1/Drivers/NetKVM" || return 1
-  cp -L "$drivers/NetKVM/$driver/$arch/netkvm.cat" "$dir/\$OEM\$/\$1/Drivers/NetKVM" || return 1
-  cp -L "$drivers/NetKVM/$driver/$arch/netkvm.inf" "$dir/\$OEM\$/\$1/Drivers/NetKVM" || return 1
-  cp -L "$drivers/NetKVM/$driver/$arch/netkvm.sys" "$dir/\$OEM\$/\$1/Drivers/NetKVM" || return 1
+  local key setup
+  setup=$(find "$target" -maxdepth 1 -type f -iname setupp.ini -print -quit)
 
-  if [ ! -f "$target/TXTSETUP.SIF" ]; then
-    error "The file TXTSETUP.SIF could not be found!" && return 1
+  if [ -n "$setup" ] && [ -z "$KEY" ]; then
+
+    pid=$(<"$setup")
+    pid="${pid%$'\r'}"
+
+    if [[ "$driver" == "2k" ]]; then
+
+      echo "${pid:0:$((${#pid})) - 3}270" > "$setup"
+
+    else
+
+      if [[ "$pid" == *"270" ]]; then
+
+        warn "this version of $desc requires a volume license key (VLK), it will ask for one during installation."
+
+      else
+
+        file=$(find "$target" -maxdepth 1 -type f -iname PID.INF -print -quit)
+
+        if [ -n "$file" ]; then
+
+          if [[ "$driver" == "2k3" ]]; then
+
+            key=$(grep -i -A 2 "StagingKey" "$file" | tail -n 2 | head -n 1)
+
+          else
+
+            key="${pid:$((${#pid})) - 8:5}"
+            if [[ "${pid^^}" == *"OEM" ]]; then
+              key=$(grep -i -A 2 "$key" "$file" | tail -n 2 | head -n 1)
+            else
+              key=$(grep -i -m 1 -A 2 "$key" "$file" | tail -n 2 | head -n 1)
+            fi
+            key="${key#*= }"
+
+          fi
+
+          key="${key%$'\r'}"
+          [[ "${#key}" == "29" ]] && KEY="$key"
+
+        fi
+
+        if [ -z "$KEY" ]; then
+
+          # These are NOT pirated keys, they come from official MS documentation.
+
+          case "${driver,,}" in
+            "xp" )
+
+              if [[ "${arch,,}" == "x86" ]]; then
+                # Windows XP Professional x86 generic trial key (no activation)
+                KEY="DR8GV-C8V6J-BYXHG-7PYJR-DB66Y"
+              else
+                # Windows XP Professional x64 generic trial key (no activation)
+                KEY="B2RBK-7KPT9-4JP6X-QQFWM-PJD6G"
+              fi ;;
+
+            "2k3" )
+
+              if [[ "${arch,,}" == "x86" ]]; then
+                # Windows Server 2003 Standard x86 generic trial key (no activation)
+                KEY="QKDCQ-TP2JM-G4MDG-VR6F2-P9C48"
+              else
+                # Windows Server 2003 Standard x64 generic trial key (no activation)
+                KEY="P4WJG-WK3W7-3HM8W-RWHCK-8JTRY"
+              fi ;;
+
+          esac
+
+          echo "${pid:0:$((${#pid})) - 3}000" > "$setup"
+
+        fi
+
+      fi
+    fi
+
   fi
 
-  sed -i '/^\[SCSI.Load\]/s/$/\nviostor=viostor.sys,4/' "$target/TXTSETUP.SIF"
-  sed -i '/^\[SourceDisksFiles.'"$arch"'\]/s/$/\nviostor.sys=1,,,,,,4_,4,1,,,1,4/' "$target/TXTSETUP.SIF"
-  sed -i '/^\[SCSI\]/s/$/\nviostor=\"Red Hat VirtIO SCSI Disk Device\"/' "$target/TXTSETUP.SIF"
-  sed -i '/^\[HardwareIdsDatabase\]/s/$/\nPCI\\VEN_1AF4\&DEV_1001\&SUBSYS_00000000=\"viostor\"/' "$target/TXTSETUP.SIF"
-  sed -i '/^\[HardwareIdsDatabase\]/s/$/\nPCI\\VEN_1AF4\&DEV_1001\&SUBSYS_00020000=\"viostor\"/' "$target/TXTSETUP.SIF"
-  sed -i '/^\[HardwareIdsDatabase\]/s/$/\nPCI\\VEN_1AF4\&DEV_1001\&SUBSYS_00021AF4=\"viostor\"/' "$target/TXTSETUP.SIF"
-  sed -i '/^\[HardwareIdsDatabase\]/s/$/\nPCI\\VEN_1AF4\&DEV_1001\&SUBSYS_00000000=\"viostor\"/' "$target/TXTSETUP.SIF"
+  [ -n "$KEY" ] && KEY="ProductID=$KEY"
 
-  if [ ! -d "$drivers/sata/xp/$arch" ]; then
-    error "Failed to locate required SATA drivers!" && return 1
-  fi
-
-  mkdir -p "$dir/\$OEM\$/\$1/Drivers/sata" || return 1
-  cp -Lr "$drivers/sata/xp/$arch/." "$dir/\$OEM\$/\$1/Drivers/sata" || return 1
-  cp -Lr "$drivers/sata/xp/$arch/." "$target" || return 1
-
-  sed -i '/^\[SCSI.Load\]/s/$/\niaStor=iaStor.sys,4/' "$target/TXTSETUP.SIF"
-  sed -i '/^\[FileFlags\]/s/$/\niaStor.sys = 16/' "$target/TXTSETUP.SIF"
-  sed -i '/^\[SourceDisksFiles.'"$arch"'\]/s/$/\niaStor.cat = 1,,,,,,,1,0,0/' "$target/TXTSETUP.SIF"
-  sed -i '/^\[SourceDisksFiles.'"$arch"'\]/s/$/\niaStor.inf = 1,,,,,,,1,0,0/' "$target/TXTSETUP.SIF"
-  sed -i '/^\[SourceDisksFiles.'"$arch"'\]/s/$/\niaStor.sys = 1,,,,,,4_,4,1,,,1,4/' "$target/TXTSETUP.SIF"
-  sed -i '/^\[SourceDisksFiles.'"$arch"'\]/s/$/\niaStor.sys = 1,,,,,,,1,0,0/' "$target/TXTSETUP.SIF"
-  sed -i '/^\[SourceDisksFiles.'"$arch"'\]/s/$/\niaahci.cat = 1,,,,,,,1,0,0/' "$target/TXTSETUP.SIF"
-  sed -i '/^\[SourceDisksFiles.'"$arch"'\]/s/$/\niaAHCI.inf = 1,,,,,,,1,0,0/' "$target/TXTSETUP.SIF"
-  sed -i '/^\[SCSI\]/s/$/\niaStor=\"Intel\(R\) SATA RAID\/AHCI Controller\"/' "$target/TXTSETUP.SIF"
-  sed -i '/^\[HardwareIdsDatabase\]/s/$/\nPCI\\VEN_8086\&DEV_2922\&CC_0106=\"iaStor\"/' "$target/TXTSETUP.SIF"
-
-  rm -rf "$drivers"
-
-  local pid file setup
-  setup=$(find "$target" -maxdepth 1 -type f -iname setupp.ini | head -n 1)
-  pid=$(<"$setup")
-  pid="${pid:(-4)}"
-  pid="${pid:0:3}"
-
-  if [[ "$pid" == "270" ]]; then
-    warn "this version of $desc requires a volume license key (VLK), it will ask for one during installation."
-  fi
+  mkdir -p "$dir/\$OEM\$"
 
   if ! addFolder "$dir"; then
     error "Failed to add OEM folder to image!" && return 1
@@ -1788,17 +1567,23 @@ prepareInstall() {
   local install="$dir/\$OEM\$/\$1/OEM/install.bat"
   [ -f "$install" ] && oem="\"Script\"=\"cmd /C start \\\"Install\\\" \\\"cmd /C C:\\\\OEM\\\\install.bat\\\"\""
 
-  [ -z "$YRES" ] && YRES="720"
-  [ -z "$XRES" ] && XRES="1280"
+  [ -z "$WIDTH" ] && WIDTH="1280"
+  [ -z "$HEIGHT" ] && HEIGHT="720"
 
-  XHEX=$(printf '%x\n' "$XRES")
-  YHEX=$(printf '%x\n' "$YRES")
+  XHEX=$(printf '%x\n' "$WIDTH")
+  YHEX=$(printf '%x\n' "$HEIGHT")
 
-  local username="Docker"
-  local password="*"
+  local username=""
+  local password=""
 
-  [ -n "$PASSWORD" ] && password="$PASSWORD"
   [ -n "$USERNAME" ] && username=$(echo "$USERNAME" | sed 's/[^[:alnum:]@!._-]//g')
+  [ -z "$username" ] && username="Docker"
+
+  [ -n "$PASSWORD" ] && password=$(echo "$PASSWORD" | sed 's/"//g')
+  [ -z "$password" ] && password="admin"
+
+  local ip="20.20.20.1"
+  [ -n "${VM_NET_IP:-}" ] && ip="${VM_NET_IP%.*}.1"
 
   find "$target" -maxdepth 1 -type f -iname winnt.sif -exec rm {} \;
 
@@ -1837,15 +1622,15 @@ prepareInstall() {
           echo "    FullName=\"$username\""
           echo "    ComputerName=\"*\""
           echo "    OrgName=\"Windows for Docker\""
-          echo "    ProductKey=$key"
+          echo "    $KEY"
           echo ""
           echo "[Identification]"
           echo "    JoinWorkgroup = WORKGROUP"
           echo ""
           echo "[Display]"
           echo "    BitsPerPel=32"
-          echo "    XResolution=$XRES"
-          echo "    YResolution=$YRES"
+          echo "    XResolution=$WIDTH"
+          echo "    YResolution=$HEIGHT"
           echo ""
           echo "[Networking]"
           echo "    InstallDefaultComponents=Yes"
@@ -1887,21 +1672,24 @@ prepareInstall() {
           echo "[HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\SharedAccess\Parameters\FirewallPolicy\StandardProfile\GloballyOpenPorts\List]"
           echo "\"3389:TCP\"=\"3389:TCP:*:Enabled:@xpsp2res.dll,-22009\""
           echo ""
-          echo "[HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\Lsa]"
-          echo "\"LimitBlankPasswordUse\"=dword:00000000"
-          echo ""
           echo "[HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Applets\Tour]"
           echo "\"RunCount\"=dword:00000000"
           echo ""
           echo "[HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced]"
           echo "\"HideFileExt\"=dword:00000000"
           echo ""
+          echo "[HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\Explorer]"
+          echo "\"NoWelcomeScreen\"=\"1\""
+          echo ""
+          echo "[HKEY_CURRENT_USER\Software\Microsoft\Internet Connection Wizard]"
+          echo "\"Completed\"=\"1\""
+          echo "\"Desktopchanged\"=\"1\""
+          echo ""
           echo "[HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon]"
-          echo "\"DefaultUserName\"=\"$username\""
-          echo "\"DefaultDomainName\"=\"Dockur\""
-          echo "\"AltDefaultUserName\"=\"$username\""
-          echo "\"AltDefaultDomainName\"=\"Dockur\""
           echo "\"AutoAdminLogon\"=\"1\""
+          echo "\"DefaultUserName\"=\"$username\""
+          echo "\"DefaultPassword\"=\"$password\""
+          echo "\"DefaultDomainName\"=\"Dockur\""
           echo ""
           echo "[HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\Video\{23A77BF7-ED96-40EC-AF06-9B1F4867732A}\0000]"
           echo "\"DefaultSettings.BitsPerPel\"=dword:00000020"
@@ -1920,11 +1708,18 @@ prepareInstall() {
           echo ""
   } | unix2dos > "$dir/\$OEM\$/install.reg"
 
+  if [[ "$driver" == "2k" ]]; then
+    {       echo "[HKEY_USERS\.DEFAULT\Software\Microsoft\Windows\CurrentVersion\Runonce]"
+            echo "\"^SetupICWDesktop\"=-"
+            echo ""
+    } | unix2dos >> "$dir/\$OEM\$/install.reg"
+  fi
+
   if [[ "$driver" == "2k3" ]]; then
     {       echo "[HKEY_CURRENT_USER\Software\Microsoft\Windows NT\CurrentVersion\srvWiz]"
             echo "@=dword:00000000"
             echo ""
-            echo "[HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\ServerOOBE\SecurityOOBE]"
+            echo "[HKEY_LOCAL_MACHINE\Software\Microsoft\Windows\CurrentVersion\ServerOOBE\SecurityOOBE]"
             echo "\"DontLaunchSecurityOOBE\"=dword:00000000"
             echo ""
     } | unix2dos >> "$dir/\$OEM\$/install.reg"
@@ -1972,6 +1767,14 @@ prepareInstall() {
           echo ""
           echo "Call Domain.MoveHere(LocalAdminADsPath, \"$username\")"
           echo ""
+          echo "With (CreateObject(\"Scripting.FileSystemObject\"))"
+          echo "  SysRoot = WshShell.ExpandEnvironmentStrings(\"%SystemRoot%\")"
+          echo "  Set oFile = .OpenTextFile(SysRoot & \"\system32\drivers\etc\hosts\", 8, true)"
+          echo "  oFile.Write(\"$ip      host.lan\")"
+          echo "  oFile.Close()"
+          echo "  Set oFile = Nothing"
+          echo "End With"
+          echo ""
   } | unix2dos > "$dir/\$OEM\$/admin.vbs"
 
   {       echo "[COMMANDS]"
@@ -1979,56 +1782,6 @@ prepareInstall() {
           echo "\"Wscript admin.vbs\""
           echo ""
   } | unix2dos > "$dir/\$OEM\$/cmdlines.txt"
-
-  return 0
-}
-
-prepare2k3() {
-
-  local iso="$1"
-  local dir="$2"
-  local desc="$3"
-  local driver="2k3"
-  local arch key
-
-  [ -d "$dir/AMD64" ] && arch="amd64" || arch="x86"
-
-  if [[ "${arch,,}" == "x86" ]]; then
-    # Windows Server 2003 Standard x86 generic key (no activation, trial-only)
-    # This is not a pirated key, it comes from the official MS documentation.
-    key="QKDCQ-TP2JM-G4MDG-VR6F2-P9C48"
-  else
-    # Windows Server 2003 Standard x64 generic key (no activation, trial-only)
-    # This is not a pirated key, it comes from the official MS documentation.
-    key="P4WJG-WK3W7-3HM8W-RWHCK-8JTRY"
-  fi
-
-  prepareInstall "$iso" "$dir" "$desc" "$arch" "$key" "$driver" || return 1
-
-  return 0
-}
-
-prepareXP() {
-
-  local iso="$1"
-  local dir="$2"
-  local desc="$3"
-  local driver="xp"
-  local arch key
-
-  [ -d "$dir/AMD64" ] && arch="amd64" || arch="x86"
-
-  if [[ "${arch,,}" == "x86" ]]; then
-    # Windows XP Professional x86 generic key (no activation, trial-only)
-    # This is not a pirated key, it comes from the official MS documentation.
-    key="DR8GV-C8V6J-BYXHG-7PYJR-DB66Y"
-  else
-    # Windows XP Professional x64 generic key (no activation, trial-only)
-    # This is not a pirated key, it comes from the official MS documentation.
-    key="B2RBK-7KPT9-4JP6X-QQFWM-PJD6G"
-  fi
-
-  prepareInstall "$iso" "$dir" "$desc" "$arch" "$key" "$driver" || return 1
 
   return 0
 }
@@ -2061,34 +1814,59 @@ prepareLegacy() {
 detectLegacy() {
 
   local dir="$1"
-  local find find2
+  local find
 
-  find=$(find "$dir" -maxdepth 1 -type d -iname win95 | head -n 1)
+  find=$(find "$dir" -maxdepth 1 -type d -iname WIN95 -print -quit)
   [ -n "$find" ] && DETECTED="win95" && return 0
 
-  find=$(find "$dir" -maxdepth 1 -type d -iname win98 | head -n 1)
+  find=$(find "$dir" -maxdepth 1 -type d -iname WIN98 -print -quit)
   [ -n "$find" ] && DETECTED="win98" && return 0
 
-  find=$(find "$dir" -maxdepth 1 -type d -iname win9x | head -n 1)
+  find=$(find "$dir" -maxdepth 1 -type d -iname WIN9X -print -quit)
   [ -n "$find" ] && DETECTED="win9x" && return 0
 
-  find=$(find "$dir" -maxdepth 1 -type f -iname cdrom_nt.5 | head -n 1)
-  [ -n "$find" ] && DETECTED="win2k" && return 0
+  find=$(find "$dir" -maxdepth 1 -type f -iname CDROM_W.40 -print -quit)
+  [ -z "$find" ] && find=$(find "$dir" -maxdepth 1 -type f -iname CDROM_S.40 -print -quit)
+  [ -z "$find" ] && find=$(find "$dir" -maxdepth 1 -type f -iname CDROM_TS.40 -print -quit)
+  [ -n "$find" ] && DETECTED="winnt4" && return 0
 
-  find=$(find "$dir" -maxdepth 1 -type d -iname win51 | head -n 1)
-  find2=$(find "$dir" -maxdepth 1 -type f -iname setupxp.htm | head -n 1)
+  find=$(find "$dir" -maxdepth 1 -type f -iname CDROM_NT.5 -print -quit)
 
-  if [ -n "$find" ] || [ -n "$find2" ] || [ -f "$dir/WIN51AP" ] || [ -f "$dir/WIN51IC" ]; then
-    [ -d "$dir/AMD64" ] && DETECTED="winxpx64" && return 0
-    DETECTED="winxpx86" && return 0
+  if [ -n "$find" ]; then
+
+    find=$(find "$dir" -maxdepth 1 -type f -iname CDROM_IA.5 -print -quit)
+    [ -z "$find" ] && find=$(find "$dir" -maxdepth 1 -type f -iname CDROM_ID.5 -print -quit)
+    [ -z "$find" ] && find=$(find "$dir" -maxdepth 1 -type f -iname CDROM_IP.5 -print -quit)
+    [ -z "$find" ] && find=$(find "$dir" -maxdepth 1 -type f -iname CDROM_IS.5 -print -quit)
+    [ -n "$find" ] && DETECTED="win2k" && return 0
+
   fi
 
-  if [ -f "$dir/WIN51IA" ] || [ -f "$dir/WIN51IB" ] || [ -f "$dir/WIN51ID" ] || [ -f "$dir/WIN51IL" ] || [ -f "$dir/WIN51IS" ]; then
-    DETECTED="win2003r2" && return 0
-  fi
+  find=$(find "$dir" -maxdepth 1 -iname WIN51 -print -quit)
 
-  if [ -f "$dir/WIN51AA" ] || [ -f "$dir/WIN51AD" ] || [ -f "$dir/WIN51AS" ] || [ -f "$dir/WIN51MA" ] || [ -f "$dir/WIN51MD" ]; then
-    DETECTED="win2003r2" && return 0
+  if [ -n "$find" ]; then
+
+    find=$(find "$dir" -maxdepth 1 -type f -iname WIN51AP -print -quit)
+    [ -n "$find" ] && DETECTED="winxpx64" && return 0
+
+    find=$(find "$dir" -maxdepth 1 -type f -iname WIN51IC -print -quit)
+    [ -z "$find" ] && find=$(find "$dir" -maxdepth 1 -type f -iname WIN51IP -print -quit)
+    [ -z "$find" ] && find=$(find "$dir" -maxdepth 1 -type f -iname setupxp.htm -print -quit)
+    [ -n "$find" ] && DETECTED="winxpx86" && return 0
+
+    find=$(find "$dir" -maxdepth 1 -type f -iname WIN51IS -print -quit)
+    [ -z "$find" ] && find=$(find "$dir" -maxdepth 1 -type f -iname WIN51IA -print -quit)
+    [ -z "$find" ] && find=$(find "$dir" -maxdepth 1 -type f -iname WIN51IB -print -quit)
+    [ -z "$find" ] && find=$(find "$dir" -maxdepth 1 -type f -iname WIN51ID -print -quit)
+    [ -z "$find" ] && find=$(find "$dir" -maxdepth 1 -type f -iname WIN51IL -print -quit)
+    [ -z "$find" ] && find=$(find "$dir" -maxdepth 1 -type f -iname WIN51IS -print -quit)
+    [ -z "$find" ] && find=$(find "$dir" -maxdepth 1 -type f -iname WIN51AA -print -quit)
+    [ -z "$find" ] && find=$(find "$dir" -maxdepth 1 -type f -iname WIN51AD -print -quit)
+    [ -z "$find" ] && find=$(find "$dir" -maxdepth 1 -type f -iname WIN51AS -print -quit)
+    [ -z "$find" ] && find=$(find "$dir" -maxdepth 1 -type f -iname WIN51MA -print -quit)
+    [ -z "$find" ] && find=$(find "$dir" -maxdepth 1 -type f -iname WIN51MD -print -quit)
+    [ -n "$find" ] && DETECTED="win2003r2" && return 0
+
   fi
 
   return 1
@@ -2117,21 +1895,33 @@ setMachine() {
     "win9"* )
       ETFS="[BOOT]/Boot-1.44M.img" ;;
     "win2k"* )
-      ETFS="[BOOT]/Boot-NoEmul.img" ;;
+      if ! prepareInstall "$iso" "$dir" "$desc" "2k"; then
+        error "Failed to prepare $desc ISO!" && return 1
+      fi ;;
     "winxp"* )
-      if ! prepareXP "$iso" "$dir" "$desc"; then
+      if ! prepareInstall "$iso" "$dir" "$desc" "xp"; then
         error "Failed to prepare $desc ISO!" && return 1
       fi ;;
     "win2003"* )
-      if ! prepare2k3 "$iso" "$dir" "$desc"; then
+      if ! prepareInstall "$iso" "$dir" "$desc" "2k3"; then
         error "Failed to prepare $desc ISO!" && return 1
       fi ;;
   esac
 
   case "${id,,}" in
-    "win9"* | "win2k"* )
+    "win9"* )
+      USB="no"
+      VGA="cirrus"
       DISK_TYPE="auto"
+      ADAPTER="rtl8139"
       MACHINE="pc-i440fx-2.4"
+      BOOT_MODE="windows_legacy" ;;
+    "win2k"* )
+      VGA="cirrus"
+      MACHINE="pc"
+      USB="pci-ohci"
+      DISK_TYPE="auto"
+      ADAPTER="rtl8139"
       BOOT_MODE="windows_legacy" ;;
     "winxp"* | "win2003"* )
       DISK_TYPE="blk"

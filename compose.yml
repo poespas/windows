@@ -5,16 +5,20 @@ services:
       dockerfile: Dockerfile
     container_name: windows
     environment:
-      VERSION: "win11"
+      VERSION: "11"
       USERNAME: "poespas"
     devices:
       - /dev/kvm
+      - /dev/net/tun
     volumes:
       - ./oem:/oem
+      - ./windows:/storage
     cap_add:
       - NET_ADMIN
     ports:
       - 8006:8006
-      # - 3389:3389/tcp
-      # - 3389:3389/udp
+      - 3389:3389/tcp
+      - 3389:3389/udp
+    volumes:
+    restart: always
     stop_grace_period: 2m

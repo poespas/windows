@@ -65,7 +65,7 @@
           <InstallFrom>
             <MetaData wcm:action="add">
               <Key>/IMAGE/NAME</Key>
-              <Value>Windows Server 2016 SERVERSTANDARD</Value>
+              <Value>Hyper-V Server 2019 SERVERHYPERCORE</Value>
             </MetaData>
           </InstallFrom>
           <InstallTo>
@@ -88,9 +88,6 @@
         <AcceptEula>true</AcceptEula>
         <FullName>Docker</FullName>
         <Organization>Windows for Docker</Organization>
-        <ProductKey>
-          <Key>WC2BQ-8NRM3-FDDYY-2BFGV-KHKQY</Key>
-        </ProductKey>
       </UserData>
       <EnableFirewall>false</EnableFirewall>
       <Diagnostics>
@@ -120,6 +117,10 @@
       <OEMInformation>
         <Manufacturer>Dockur</Manufacturer>
         <Model>Windows for Docker</Model>
+        <SupportHours>24/7</SupportHours>
+        <SupportPhone />
+        <SupportProvider>Dockur</SupportProvider>
+        <SupportURL>https://github.com/dockur/windows/issues</SupportURL>
       </OEMInformation>
       <OEMName>Windows for Docker</OEMName>
     </component>
@@ -157,6 +158,11 @@
           <Order>1</Order>
           <Path>reg.exe add "HKLM\SOFTWARE\Policies\Microsoft\Windows NT\CurrentVersion\NetworkList\Signatures\FirstNetwork" /v Category /t REG_DWORD /d 1 /f</Path>
           <Description>Set Network Location to Home</Description>
+        </RunSynchronousCommand>
+        <RunSynchronousCommand wcm:action="add">
+          <Order>2</Order>
+          <Path>dism.exe /online /Disable-Feature /FeatureName:Microsoft-Hyper-V /NoRestart</Path>
+          <Description>Disable Hyper-V role</Description>
         </RunSynchronousCommand>
       </RunSynchronous>
     </component>
